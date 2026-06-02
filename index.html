@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>採購法練習系統</title>
+  <title>採購法考古題練習系統</title>
   
-  <!-- 引入 Tailwind CSS 進行莫蘭迪風格排版 -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- 引入 Babel 讓瀏覽器可以直接看懂 React (JSX) 語法 -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Tailwind 擴充設定與動畫 -->
   <style>
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -19,10 +16,8 @@
 </head>
 <body class="bg-[#F4F1EB]">
   
-  <!-- React 應用的掛載點 -->
   <div id="root"></div>
 
-  <!-- 我們的核心程式碼 (使用 type="text/babel" 且 data-type="module" 來支援 ES6 Import) -->
   <script type="text/babel" data-type="module">
     import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
     import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
@@ -51,7 +46,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : "street-quiz";
+    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz"; // 更改為採購法專用 ID
 
     // ==========================================
     // 2. 顏色與成就設定檔
@@ -62,13 +57,13 @@
     };
 
     const ACHIEVEMENT_TIERS = [
-      { id: 't1', name: '一星龍珠', stars: 1, glowClass: 'gray', textColor: 'text-gray-500', threshold: { full: 350, random: 1, mock: 1 } },
-      { id: 't2', name: '二星龍珠', stars: 2, glowClass: 'green', textColor: 'text-green-500', threshold: { full: 700, random: 3, mock: 2 } },
-      { id: 't3', name: '三星龍珠', stars: 3, glowClass: 'blue', textColor: 'text-blue-500', threshold: { full: 1050, random: 5, mock: 3 } },
-      { id: 't4', name: '四星龍珠', stars: 4, glowClass: 'yellow', textColor: 'text-yellow-500', threshold: { full: 1400, random: 7, mock: 4 } },
-      { id: 't5', name: '五星龍珠', stars: 5, glowClass: 'purple', textColor: 'text-purple-500', threshold: { full: 1750, random: 10, mock: 5 } },
-      { id: 't6', name: '六星龍珠', stars: 6, glowClass: 'red', textColor: 'text-red-500', threshold: { full: 2100, random_perfect: 1, mock: 6 } },
-      { id: 't7', name: '七星龍珠', stars: 7, glowClass: 'rainbow', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-400 to-blue-400', threshold: { full: 2686, random_perfect: 2, mock_perfect: 1 } },
+      { id: 't1', name: '初心者', stars: 1, glowClass: 'gray', textColor: 'text-gray-500', threshold: { full: 50, random: 1, mock: 1 } },
+      { id: 't2', name: '入門者', stars: 2, glowClass: 'green', textColor: 'text-green-500', threshold: { full: 100, random: 3, mock: 2 } },
+      { id: 't3', name: '一階小雞蛋', stars: 3, glowClass: 'blue', textColor: 'text-blue-500', threshold: { full: 150, random: 5, mock: 3 } },
+      { id: 't4', name: '二階半熟蛋', stars: 4, glowClass: 'yellow', textColor: 'text-yellow-500', threshold: { full: 200, random: 7, mock: 4 } },
+      { id: 't5', name: '三階帶殼小雞', stars: 5, glowClass: 'purple', textColor: 'text-purple-500', threshold: { full: 250, random: 10, mock: 5 } },
+      { id: 't6', name: '四階地走雞', stars: 6, glowClass: 'red', textColor: 'text-red-500', threshold: { full: 280, random_perfect: 1, mock: 6 } },
+      { id: 't7', name: '五階咕咕雞', stars: 7, glowClass: 'rainbow', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-400 to-blue-400', threshold: { full: 560, random_perfect: 2, mock_perfect: 1 } },
     ];
 
     const PREFIXES = { tf_full: '是非題全題庫', mc_full: '選擇題全題庫', tf_random: '是非題隨堂測驗', mc_random: '選擇題隨堂測驗', mock: '模擬測驗' };
@@ -166,8 +161,9 @@
       useEffect(() => {
         const fetchQuestions = async () => {
           try {
-            const tfRes = await fetch('https://docs.google.com/spreadsheets/d/1iJGGtpb7u1QCpuESmFNjyhR56ZJlHUST1fmLk3gVC6w/gviz/tq?tqx=out:csv&gid=297844755');
-            const mcRes = await fetch('https://docs.google.com/spreadsheets/d/1j1NrbzBKsrLHzNgVqpkC9abe3a7NjDwe89X-XFlOtZU/gviz/tq?tqx=out:csv&gid=795659602');
+            // 替換成新的採購法 Google Sheet CSV API 網址
+            const tfRes = await fetch('https://docs.google.com/spreadsheets/d/1iJGGtpb7u1QCpuESmFNjyhR56ZJlHUST1fmLk3gVC6w/gviz/tq?tqx=out:csv');
+            const mcRes = await fetch('https://docs.google.com/spreadsheets/d/1j1NrbzBKsrLHzNgVqpkC9abe3a7NjDwe89X-XFlOtZU/gviz/tq?tqx=out:csv');
             
             const tfText = await tfRes.text();
             const mcText = await mcRes.text();
@@ -347,7 +343,7 @@
         <div className="min-h-screen relative font-sans selection:bg-[#9CAE96] selection:text-white pb-10 overflow-x-hidden" style={{ backgroundColor: COLORS.bg }}>
           <header className="px-6 py-4 flex justify-between items-center max-w-4xl mx-auto relative z-10">
             <h1 className="text-2xl font-bold tracking-wider" style={{ color: COLORS.textMain }}>
-              採購法<span style={{ color: COLORS.primary }}>練習系統</span>
+              採購法考古題<span style={{ color: COLORS.primary }}>練習系統</span>
             </h1>
             <div className="flex gap-4">
               <button onClick={() => setCurrentView('home')} className="p-2 rounded-full hover:bg-black/5 transition-colors" title="首頁">
