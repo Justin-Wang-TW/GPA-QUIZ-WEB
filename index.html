@@ -12,6 +12,47 @@
   <style>
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* --- 新增徽章特效動畫 --- */
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+    @keyframes spin-reverse-slow { 100% { transform: rotate(-360deg); } }
+    @keyframes pulse-glow { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+    @keyframes cosmic-aurora {
+      0% { filter: hue-rotate(0deg) drop-shadow(0 0 30px #ff00ff); }
+      33% { filter: hue-rotate(120deg) drop-shadow(0 0 40px #00ffff); }
+      66% { filter: hue-rotate(240deg) drop-shadow(0 0 30px #ffff00); }
+      100% { filter: hue-rotate(360deg) drop-shadow(0 0 30px #ff00ff); }
+    }
+    @keyframes cosmic-bg {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .badge-float { animation: float 4s ease-in-out infinite; }
+    
+    /* 顏色階級定義 */
+    .theme-bronze { border-color: #8B6508; box-shadow: 0 0 15px rgba(139, 101, 8, 0.4); }
+    .theme-silver { border-color: #B0C4DE; box-shadow: 0 0 20px rgba(0, 191, 255, 0.6); }
+    .theme-gold { border-color: #FFD700; box-shadow: 0 0 25px rgba(148, 0, 211, 0.8); }
+    .theme-cosmic { 
+      border: 4px solid transparent; 
+      background-clip: padding-box;
+      animation: cosmic-aurora 4s linear infinite; 
+    }
+    
+    /* 宇宙流光全屏特效 */
+    .cosmic-screen-glow {
+      position: absolute;
+      inset: -50%;
+      background: conic-gradient(from 0deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+      filter: blur(60px);
+      opacity: 0.3;
+      animation: spin-slow 10s linear infinite;
+      z-index: -1;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body class="bg-[#F4F1EB]">
@@ -22,17 +63,12 @@
     import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
     import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
     
-    // 引入 Firebase 雲端服務
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js';
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
     import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
     
-    // 引入 Lucide 圖示庫
     import { BookOpen, CheckSquare, Clock, Trophy, Home, ChevronLeft, ChevronRight, Bookmark, AlertCircle, Play, X, Star, Save, LayoutGrid } from 'https://esm.sh/lucide-react@0.344.0';
 
-    // ==========================================
-    // 1. Firebase 初始化設定
-    // ==========================================
     const fallbackConfig = {
       apiKey: "AIzaSyCS9aa4aAL7Qw2rPQdnfx-zYgA575YllVw",
       authDomain: "quiz-db627.firebaseapp.com",
@@ -48,32 +84,39 @@
     const db = getFirestore(app);
     const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz"; 
 
+    const COLORS = { bg: '#F4F1EB', cardBg: '#FFFFFF', primary: '#7B929A', secondary: '#9CAE96', accent: '#C7A38B', textMain: '#4A4A4A', textMuted: '#8A8A8A', border: '#E8E6E1' };
+
     // ==========================================
-    // 2. 顏色與成就設定檔
+    // 🎨 設定你的 10 張女神圖片網址 (已轉換為直接讀取格式)
     // ==========================================
-    const COLORS = {
-      bg: '#F4F1EB', cardBg: '#FFFFFF', primary: '#7B929A', secondary: '#9CAE96', 
-      accent: '#C7A38B', textMain: '#4A4A4A', textMuted: '#8A8A8A', border: '#E8E6E1',
+    const BADGE_IMAGES = {
+      1: "https://drive.google.com/uc?export=view&id=1Pc8y3Acr5SwZqlIhTmV9cZwrqK995pUr", // 初入遺跡的新兵
+      2: "https://drive.google.com/uc?export=view&id=1HbR4jOdAGyBV25UDzR7NNuPvIVy_n8ci", // 塵封卷軸的閱讀者
+      3: "https://drive.google.com/uc?export=view&id=1AmhWJk6a4DG9MK59JGJQbmxS-irXSoMB", // 真理碎片的掘金者
+      4: "https://drive.google.com/uc?export=view&id=1glcR8q2oH6VNtp4xZiTaYEXGLZY7Exj5", // 遠古密碼的研究員
+      5: "https://drive.google.com/uc?export=view&id=1EtDawKfQKhba7nD_TeTuTkPz-ewplV1L", // 迴避陷阱的破譯者
+      6: "https://drive.google.com/uc?export=view&id=1VSWhwhg_hgp0NcOPzKLa2uePF5qwBE5S", // 時間倒流的魔術師
+      7: "https://drive.google.com/uc?export=view&id=12oClesD0vpJpL_D-SppSVuVjQ3Xps8-U", // 考場神殿的守門員
+      8: "https://drive.google.com/uc?export=view&id=1qEqWs-GXfsbq2wKMCpGPjxUebxQZr5Sz", // 亙古考場的月桂冠
+      9: "https://drive.google.com/uc?export=view&id=1G8dgfm0dJ5p5oNFfVLFdffAJrXpUeAY7", // 全知之眼的支配者
+      10: "https://drive.google.com/uc?export=view&id=1-qXhxAOy-hT8ejwbb0zy9AmOuBolPmlN",// 零死角的真理之源
     };
 
     const ACHIEVEMENT_TIERS = [
-      { id: 't1', name: '初入遺跡的新兵', stars: 1, glowClass: 'gray', textColor: 'text-gray-500', threshold: { percent: 0.1, random: 1, mock: 1 } },
-      { id: 't2', name: '塵封卷軸的閱讀者', stars: 2, glowClass: 'green', textColor: 'text-green-500', threshold: { percent: 0.2, random: 2, mock: 2 } },
-      { id: 't3', name: '真理碎片的掘金者', stars: 3, glowClass: 'blue', textColor: 'text-blue-500', threshold: { percent: 0.3, random: 3, mock: 3 } },
-      { id: 't4', name: '遠古密碼的研究員', stars: 4, glowClass: 'yellow', textColor: 'text-yellow-500', threshold: { percent: 0.4, random: 4, mock: 4 } },
-      { id: 't5', name: '迴避陷阱的破譯員', stars: 5, glowClass: 'purple', textColor: 'text-purple-500', threshold: { percent: 0.5, random: 5, mock: 5 } },
-      { id: 't6', name: '時間倒流的魔術師', stars: 6, glowClass: 'red', textColor: 'text-red-500', threshold: { percent: 0.6, random: 6, mock: 6 } },
-      { id: 't7', name: '考場神殿的守門員', stars: 7, glowClass: 'rainbow', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-400 to-blue-400', threshold: { percent: 0.7, random: 7, mock: 7 } },
-      { id: 't8', name: '亙古考場的月桂冠', stars: 8, glowClass: 'rainbow', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-yellow-500 to-red-500', threshold: { percent: 0.8, random: 8, mock: 8 } },
-      { id: 't9', name: '全知之眼的支配者', stars: 9, glowClass: 'rainbow', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500', threshold: { percent: 0.9, random: 9, random_perfect: 1, mock: 9, mock_perfect: 1 } },
-      { id: 't10', name: '零死角的真理之門', stars: 10, glowClass: 'rainbow', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500', threshold: { percent: 1.0, random: 10, random_perfect: 2, mock: 10, mock_perfect: 2 } },
+      { id: 't1', name: '初入遺跡的新兵', level: 1, color: 'bronze', anim: 'static', textColor: 'text-[#8B6508]', threshold: { percent: 0.1, random: 1, mock: 1 } },
+      { id: 't2', name: '塵封卷軸的閱讀者', level: 2, color: 'bronze', anim: 'static', textColor: 'text-[#8B6508]', threshold: { percent: 0.2, random: 2, mock: 2 } },
+      { id: 't3', name: '真理碎片的掘金者', level: 3, color: 'bronze', anim: 'static', textColor: 'text-[#8B6508]', threshold: { percent: 0.3, random: 3, mock: 3 } },
+      { id: 't4', name: '遠古密碼的研究員', level: 4, color: 'silver', anim: 'static', textColor: 'text-[#4682B4]', threshold: { percent: 0.4, random: 4, mock: 4 } },
+      { id: 't5', name: '迴避陷阱的破譯者', level: 5, color: 'silver', anim: 'gear', textColor: 'text-[#4682B4]', threshold: { percent: 0.5, random: 5, mock: 5 } },
+      { id: 't6', name: '時間倒流的魔術師', level: 6, color: 'silver', anim: 'hourglass', textColor: 'text-[#4682B4]', threshold: { percent: 0.6, random: 6, mock: 6 } },
+      { id: 't7', name: '考場神殿的守門員', level: 7, color: 'gold', anim: 'holy', textColor: 'text-[#9400D3]', threshold: { percent: 0.7, random: 7, mock: 7 } },
+      { id: 't8', name: '亙古考場的月桂冠', level: 8, color: 'gold', anim: 'holy', textColor: 'text-[#9400D3]', threshold: { percent: 0.8, random: 8, mock: 8 } },
+      { id: 't9', name: '全知之眼的支配者', level: 9, color: 'gold', anim: 'holy', textColor: 'text-[#9400D3]', threshold: { percent: 0.9, random: 9, random_perfect: 1, mock: 9, mock_perfect: 1 } },
+      { id: 't10', name: '零死角的真理之源', level: 10, color: 'cosmic', anim: 'aurora', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500', threshold: { percent: 1.0, random: 10, random_perfect: 2, mock: 10, mock_perfect: 2 } },
     ];
 
     const PREFIXES = { tf_full: '是非題全題庫', mc_full: '選擇題全題庫', tf_random: '是非題隨堂測驗', mc_random: '選擇題隨堂測驗', mock: '模擬測驗' };
 
-    // ==========================================
-    // 3. 工具函式
-    // ==========================================
     const parseCSV = (text) => {
       const result = [];
       let row = [], inQuotes = false, cell = '';
@@ -116,7 +159,86 @@
     };
 
     // ==========================================
-    // 4. 核心 App 元件
+    // 女神徽章元件
+    // ==========================================
+    function GoddessBadge({ level, size = 80, isGrayscale = false, tierInfo }) {
+      const imageUrl = BADGE_IMAGES[level];
+      const { color, anim } = tierInfo;
+      
+      let containerClass = `relative flex justify-center items-center rounded-full `;
+      let imgClass = `rounded-full object-cover transition-all duration-700 z-10 border-4 border-solid bg-white `;
+      
+      if (isGrayscale) {
+        imgClass += ` grayscale brightness-50 border-gray-400 `;
+      } else {
+        if (color === 'bronze') imgClass += ` theme-bronze `;
+        else if (color === 'silver') imgClass += ` theme-silver `;
+        else if (color === 'gold') imgClass += ` theme-gold `;
+        else if (color === 'cosmic') imgClass += ` theme-cosmic `;
+
+        if (anim !== 'static') containerClass += ` badge-float `;
+      }
+
+      return (
+        <div className={containerClass} style={{ width: size, height: size }}>
+          {/* 動態特效層 */}
+          {!isGrayscale && (
+            <>
+              {/* Lv.5 - Lv.6 科技藍齒輪旋轉/沙漏感 */}
+              {(anim === 'gear' || anim === 'hourglass') && (
+                 <div className="absolute inset-[-10px] rounded-full border-[3px] border-dashed border-[#87CEFA] opacity-60 pointer-events-none" style={{ animation: anim === 'gear' ? 'spin-slow 6s linear infinite' : 'spin-reverse-slow 8s ease-in-out infinite' }}></div>
+              )}
+              {/* Lv.7 - Lv.9 神聖紫金發光脈衝 */}
+              {anim === 'holy' && (
+                 <div className="absolute inset-[-15px] rounded-full border-2 border-[#9400D3] shadow-[0_0_20px_#FFD700] pointer-events-none" style={{ animation: 'pulse-glow 3s infinite' }}></div>
+              )}
+              {/* Lv.10 宇宙極光全屏感 (縮小版) */}
+              {anim === 'aurora' && (
+                 <div className="absolute inset-[-30px] rounded-full opacity-70 blur-xl pointer-events-none z-0" style={{ background: 'conic-gradient(from 0deg, #ff00ff, #00ffff, #ffff00, #ff00ff)', animation: 'spin-slow 5s linear infinite' }}></div>
+              )}
+            </>
+          )}
+          
+          <div className={imgClass} style={{ width: '100%', height: '100%', backgroundImage: `url(${imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 結算/解鎖畫面特效
+    // ==========================================
+    function CelebrationOverlay({ unlock, onClose }) {
+      const { category, tier } = unlock;
+      const isMaxLevel = tier.level === 10;
+
+      return (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 backdrop-blur-md overflow-hidden">
+          {/* 滿級專屬特效 */}
+          {isMaxLevel && <div className="cosmic-screen-glow"></div>}
+
+          <div className="bg-white rounded-[3rem] p-10 px-12 text-center shadow-[0_0_80px_rgba(255,255,255,0.2)] animate-pop-in relative z-10 max-w-sm mx-4 mt-16 border border-gray-100">
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 flex justify-center w-full">
+              <GoddessBadge level={tier.level} size={150} isGrayscale={false} tierInfo={tier} />
+              
+              {tier.anim !== 'static' && (
+                <>
+                  <Star size={32} className="absolute -top-4 -right-2 text-yellow-300 animate-pulse" fill="currentColor" />
+                  <Star size={20} className="absolute bottom-10 -left-8 text-yellow-300 animate-pulse" fill="currentColor" style={{ animationDelay: '0.5s' }} />
+                </>
+              )}
+            </div>
+            
+            <h2 className="text-2xl font-black mt-20 mb-2 text-gray-700">{unlock.isClaiming ? '成功獲得新身份！' : '境界突破！'}</h2>
+            <p className="text-gray-500 mb-4 font-medium">{PREFIXES[category]}</p>
+            <div className={`text-4xl font-black mb-8 ${tier.textColor}`}>{tier.name}</div>
+            <button onClick={onClose} className="w-full py-4 rounded-full text-white font-bold text-lg hover:scale-105 transition-transform shadow-lg bg-[#7B929A]">{unlock.isClaiming ? '太棒了！' : '繼續答題'}</button>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 核心 App
     // ==========================================
     function App() {
       const [user, setUser] = useState(null);
@@ -136,7 +258,6 @@
       const [claimedAchievements, setClaimedAchievements] = useState([]);
 
       const [quizConfig, setQuizConfig] = useState(null);
-      const [showConfetti, setShowConfetti] = useState(false);
       const [achievementQueue, setAchievementQueue] = useState([]);
 
       useEffect(() => {
@@ -184,7 +305,6 @@
               const cleanAnswer = (row[3] || '').replace(/[, ()\s]/g, '').toUpperCase();
               const isMultiple = cleanAnswer.length > 1 || qText.includes('(多選)');
               const optionsRaw = row[2] || '';
-              
               const parsedOptions = optionsRaw.split(/(?:\(\d+\)|\d+[.．、])\s*/).filter(o => o.trim() !== '').map(o => o.trim());
 
               return {
@@ -295,11 +415,6 @@
         } catch (e) { console.error(e); }
       };
 
-      const triggerConfetti = () => {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000);
-      };
-
       const showModal = (title, message, type = 'alert', onConfirm = null) => {
         setModalConfig({ title, message, type, onConfirm });
       };
@@ -315,45 +430,32 @@
           questions = [...shuffleArray(tfBank).slice(0, 50), ...shuffleArray(mcBank).slice(0, 50)];
           timeLimit = 50 * 60;
         } else if (mode === 'mistakes') {
-          questions = shuffleArray(mistakes).map(m => ({
-            ...m,
-            isMultiple: m.isMultiple !== undefined ? m.isMultiple : (m.type === 'mc' && m.answer.length > 1)
-          }));
+          questions = shuffleArray(mistakes).map(m => ({ ...m, isMultiple: m.isMultiple !== undefined ? m.isMultiple : (m.type === 'mc' && m.answer.length > 1) }));
         }
 
-        if (questions.length === 0 && mode !== 'mistakes') {
-           showModal("提示", "題庫載入中或為空，請稍後再試。");
-           return;
-        }
-
+        if (questions.length === 0 && mode !== 'mistakes') { showModal("提示", "題庫載入中或為空，請稍後再試。"); return; }
         setQuizConfig({ mode, questions, timeLimit, startIndex });
         setCurrentView('quiz');
       };
 
       if (loading || tfBank.length === 0) {
         return (
-          <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: COLORS.bg }}>
+          <div className="min-h-screen flex items-center justify-center bg-[#F4F1EB]">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-[#7B929A] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p style={{ color: COLORS.textMain }} className="font-medium text-lg">載入題庫與設定中...</p>
+              <p className="font-medium text-lg text-gray-700">載入題庫與設定中...</p>
             </div>
           </div>
         );
       }
 
       return (
-        <div className="min-h-screen relative font-sans selection:bg-[#9CAE96] selection:text-white pb-10 overflow-x-hidden" style={{ backgroundColor: COLORS.bg }}>
+        <div className="min-h-screen relative font-sans selection:bg-[#9CAE96] selection:text-white pb-10 overflow-x-hidden bg-[#F4F1EB]">
           <header className="px-6 py-4 flex justify-between items-center max-w-4xl mx-auto relative z-10">
-            <h1 className="text-2xl font-bold tracking-wider" style={{ color: COLORS.textMain }}>
-              採購法考古題<span style={{ color: COLORS.primary }}>練習系統</span>
-            </h1>
+            <h1 className="text-2xl font-bold tracking-wider text-gray-700">採購法考古題<span className="text-[#7B929A]">練習系統</span></h1>
             <div className="flex gap-4">
-              <button onClick={() => setCurrentView('home')} className="p-2 rounded-full hover:bg-black/5 transition-colors" title="首頁">
-                <Home size={24} style={{ color: COLORS.textMain }} />
-              </button>
-              <button onClick={() => setCurrentView('achievements')} className="p-2 rounded-full hover:bg-black/5 transition-colors relative" title="成就牆">
-                <Trophy size={24} style={{ color: COLORS.accent }} />
-              </button>
+              <button onClick={() => setCurrentView('home')} className="p-2 rounded-full hover:bg-black/5 transition-colors"><Home size={24} className="text-gray-700" /></button>
+              <button onClick={() => setCurrentView('achievements')} className="p-2 rounded-full hover:bg-black/5 transition-colors"><Trophy size={24} className="text-[#C7A38B]" /></button>
             </div>
           </header>
 
@@ -363,159 +465,24 @@
                  <h3 className="text-xl font-bold mb-3 text-gray-800">{modalConfig.title}</h3>
                  <p className="text-gray-600 mb-8 leading-relaxed whitespace-pre-wrap">{modalConfig.message}</p>
                  <div className="flex justify-end gap-3">
-                   {modalConfig.type === 'confirm' && (
-                     <button onClick={() => setModalConfig(null)} className="px-5 py-2.5 rounded-full font-medium text-gray-500 hover:bg-gray-100 transition-colors">取消</button>
-                   )}
-                   <button 
-                     onClick={() => { if (modalConfig.onConfirm) modalConfig.onConfirm(); setModalConfig(null); }} 
-                     className="px-5 py-2.5 rounded-full font-bold text-white shadow-md hover:scale-105 transition-transform"
-                     style={{ backgroundColor: COLORS.primary }}
-                   >確定</button>
+                   {modalConfig.type === 'confirm' && <button onClick={() => setModalConfig(null)} className="px-5 py-2.5 rounded-full font-medium text-gray-500 hover:bg-gray-100 transition-colors">取消</button>}
+                   <button onClick={() => { if (modalConfig.onConfirm) modalConfig.onConfirm(); setModalConfig(null); }} className="px-5 py-2.5 rounded-full font-bold text-white shadow-md hover:scale-105 transition-transform bg-[#7B929A]">確定</button>
                  </div>
               </div>
             </div>
           )}
 
-          {achievementQueue.length > 0 && (
-            <CelebrationOverlay 
-              unlock={achievementQueue[0]} 
-              onClose={() => setAchievementQueue(prev => prev.slice(1))} 
-            />
-          )}
+          {achievementQueue.length > 0 && <CelebrationOverlay unlock={achievementQueue[0]} onClose={() => setAchievementQueue(prev => prev.slice(1))} />}
 
-          {showConfetti && (
-            <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
-               {[...Array(30)].map((_, i) => (
-                 <div key={i} className="absolute animate-firework" style={{
-                   left: `50%`, top: `50%`,
-                   '--tx': `${(Math.random() - 0.5) * 500}px`, '--ty': `${(Math.random() - 0.5) * 500}px`,
-                   '--r': `${Math.random() * 360}deg`,
-                   '--c': ['#7B929A', '#9CAE96', '#C7A38B', '#FDE047', '#F87171'][Math.floor(Math.random()*5)],
-                   width: '10px', height: '10px', backgroundColor: 'var(--c)', borderRadius: Math.random()>0.5?'50%':'2px'
-                 }}></div>
-               ))}
-            </div>
-          )}
-
-          <main className="max-w-4xl mx-auto px-4 relative z-0">
-            {currentView === 'home' && (
-              <HomeView startQuiz={startQuiz} mistakeCount={mistakes.length} tfProgress={userProgress.tf_full} mcProgress={userProgress.mc_full} tfTotal={tfBank.length} mcTotal={mcBank.length} showModal={showModal} />
-            )}
-            {currentView === 'quiz' && quizConfig && (
-              <QuizEngine config={quizConfig} onExit={() => setCurrentView('home')} updateStats={updateStats} userStats={userStats} handleMistakeUpdate={handleMistakeUpdate} saveProgress={saveProgress} mistakes={mistakes} user={user} showModal={showModal} />
-            )}
-            {currentView === 'achievements' && (
-              <AchievementWall stats={userStats} claimed={claimedAchievements} showModal={showModal} tfTotal={tfBank.length} mcTotal={mcBank.length} onClaim={async (id, category, tier) => {
+          <main className="max-w-5xl mx-auto px-4 relative z-0">
+            {currentView === 'home' && <HomeView startQuiz={startQuiz} mistakeCount={mistakes.length} tfProgress={userProgress.tf_full} mcProgress={userProgress.mc_full} tfTotal={tfBank.length} mcTotal={mcBank.length} showModal={showModal} />}
+            {currentView === 'quiz' && quizConfig && <QuizEngine config={quizConfig} onExit={() => setCurrentView('home')} updateStats={updateStats} userStats={userStats} handleMistakeUpdate={handleMistakeUpdate} saveProgress={saveProgress} mistakes={mistakes} user={user} showModal={showModal} />}
+            {currentView === 'achievements' && <AchievementWall stats={userStats} claimed={claimedAchievements} showModal={showModal} tfTotal={tfBank.length} mcTotal={mcBank.length} onClaim={async (id, category, tier) => {
                   if(!user) return;
                   await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'achievements', id), { claimedAt: new Date().toISOString() });
                   setAchievementQueue(prev => [...prev, { category, tier, isClaiming: true }]);
-                }} />
-            )}
+                }} />}
           </main>
-
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes firework { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) rotate(var(--r)) scale(0); opacity: 0; } }
-            .animate-firework { animation: firework 1.5s ease-out forwards; }
-            @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
-            .animate-slide-in-right { animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-            @keyframes pop-in { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-            .animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-            @keyframes shoot-left { 0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) rotate(var(--r)) scale(0.6); opacity: 0; } }
-            .animate-confetti-left { animation: shoot-left 2.5s ease-out forwards; }
-            @keyframes shoot-right { 0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) rotate(var(--r)) scale(0.6); opacity: 0; } }
-            .animate-confetti-right { animation: shoot-right 2.5s ease-out forwards; }
-            @keyframes bounce-slow { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -15px); } }
-            .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
-            @keyframes sparkle { 0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(180deg); } }
-            .animate-sparkle { animation: sparkle 2s infinite ease-in-out; }
-            @keyframes glow-gray { 0%, 100% { filter: drop-shadow(0 0 8px rgba(156,163,175,0.6)); } 50% { filter: drop-shadow(0 0 20px rgba(156,163,175,1)); } }
-            @keyframes glow-green { 0%, 100% { filter: drop-shadow(0 0 8px rgba(34,197,94,0.6)); } 50% { filter: drop-shadow(0 0 20px rgba(34,197,94,1)); } }
-            @keyframes glow-blue { 0%, 100% { filter: drop-shadow(0 0 8px rgba(56,189,248,0.6)); } 50% { filter: drop-shadow(0 0 20px rgba(56,189,248,1)); } }
-            @keyframes glow-yellow { 0%, 100% { filter: drop-shadow(0 0 8px rgba(234,179,8,0.6)); } 50% { filter: drop-shadow(0 0 20px rgba(234,179,8,1)); } }
-            @keyframes glow-purple { 0%, 100% { filter: drop-shadow(0 0 8px rgba(168,85,247,0.6)); } 50% { filter: drop-shadow(0 0 20px rgba(168,85,247,1)); } }
-            @keyframes glow-red { 0%, 100% { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6)); } 50% { filter: drop-shadow(0 0 20px rgba(239,68,68,1)); } }
-            @keyframes glow-rainbow { 0% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.9)); } 20% { filter: drop-shadow(0 0 20px rgba(234,179,8,0.9)); } 40% { filter: drop-shadow(0 0 20px rgba(34,197,94,0.9)); } 60% { filter: drop-shadow(0 0 20px rgba(56,189,248,0.9)); } 80% { filter: drop-shadow(0 0 20px rgba(168,85,247,0.9)); } 100% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.9)); } }
-            .glow-gray { animation: glow-gray 2s infinite ease-in-out; }
-            .glow-green { animation: glow-green 2s infinite ease-in-out; }
-            .glow-blue { animation: glow-blue 2s infinite ease-in-out; }
-            .glow-yellow { animation: glow-yellow 2s infinite ease-in-out; }
-            .glow-purple { animation: glow-purple 2s infinite ease-in-out; }
-            .glow-red { animation: glow-red 2s infinite ease-in-out; }
-            .glow-rainbow { animation: glow-rainbow 3s infinite linear; }
-            .breathing-halo { box-shadow: 0 0 15px 5px rgba(253, 224, 71, 0.4); animation: breath 2s infinite alternate; }
-            @keyframes breath { from { box-shadow: 0 0 10px 2px rgba(253, 224, 71, 0.4); } to { box-shadow: 0 0 25px 8px rgba(253, 224, 71, 0.7); } }
-          `}} />
-        </div>
-      );
-    }
-
-    function DragonBall({ stars, size = 80, isGrayscale = false }) {
-      const starPositions = {
-        1: [[50, 50]],
-        2: [[35, 50], [65, 50]],
-        3: [[50, 35], [35, 65], [65, 65]],
-        4: [[35, 35], [65, 35], [35, 65], [65, 65]],
-        5: [[50, 50], [25, 35], [75, 35], [35, 70], [65, 70]],
-        6: [[35, 25], [65, 25], [20, 50], [80, 50], [35, 75], [65, 75]],
-        7: [[50, 20], [25, 40], [75, 40], [25, 70], [75, 70], [50, 55], [50, 85]],
-        8: [[30, 25], [70, 25], [15, 50], [85, 50], [30, 75], [70, 75], [50, 40], [50, 60]],
-        9: [[50, 15], [20, 35], [80, 35], [20, 65], [80, 65], [50, 85], [35, 50], [65, 50], [50, 50]],
-        10: [[50, 15], [25, 30], [75, 30], [15, 55], [85, 55], [30, 75], [70, 75], [50, 45], [50, 65], [50, 85]]
-      };
-      const positions = starPositions[stars] || starPositions[1];
-      const ballId = `ballGrad-${stars}`;
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: isGrayscale ? 'grayscale(100%) opacity(0.5)' : 'none', transition: 'all 0.3s' }}>
-          <defs>
-            <radialGradient id={ballId} cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#ffeba6" /><stop offset="25%" stopColor="#f59e0b" /><stop offset="75%" stopColor="#ea580c" /><stop offset="100%" stopColor="#9a3412" />
-            </radialGradient>
-            <radialGradient id="highlight" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.7" /><stop offset="100%" stopColor="white" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill={`url(#${ballId})`} />
-          <ellipse cx="32" cy="25" rx="20" ry="12" fill="url(#highlight)" transform="rotate(-30 32 25)" />
-          {positions.map((pos, i) => (
-             <path key={i} d="M0 -6 L1.4 -1.8 L6 -1.8 L2.3 1 L3.6 5.5 L0 3 L-3.6 5.5 L-2.3 1 L-6 -1.8 L-1.4 -1.8 Z" fill="#dc2626" transform={`translate(${pos[0]}, ${pos[1]}) scale(1.6)`} />
-          ))}
-        </svg>
-      );
-    }
-
-    function CelebrationOverlay({ unlock, onClose }) {
-      const { category, tier } = unlock;
-      return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden">
-          <div className="absolute bottom-0 left-0 w-10 h-10 pointer-events-none">
-            {[...Array(50)].map((_, i) => (
-              <div key={`lc-${i}`} className="absolute bottom-0 left-0 w-3 h-4 animate-confetti-left" style={{ '--tx': `${Math.random() * 60 + 10}vw`, '--ty': `-${Math.random() * 80 + 30}vh`, '--r': `${Math.random() * 720}deg`, backgroundColor: ['#7B929A', '#9CAE96', '#C7A38B', '#FDE047', '#F87171', '#60A5FA'][Math.floor(Math.random()*6)], clipPath: Math.random() > 0.5 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', borderRadius: Math.random() > 0.5 ? '50%' : '2px' }}></div>
-            ))}
-          </div>
-          <div className="absolute bottom-0 right-0 w-10 h-10 pointer-events-none">
-            {[...Array(50)].map((_, i) => (
-              <div key={`rc-${i}`} className="absolute bottom-0 right-0 w-3 h-4 animate-confetti-right" style={{ '--tx': `-${Math.random() * 60 + 10}vw`, '--ty': `-${Math.random() * 80 + 30}vh`, '--r': `${Math.random() * 720}deg`, backgroundColor: ['#7B929A', '#9CAE96', '#C7A38B', '#FDE047', '#F87171', '#60A5FA'][Math.floor(Math.random()*6)], clipPath: Math.random() > 0.5 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', borderRadius: Math.random() > 0.5 ? '50%' : '2px' }}></div>
-            ))}
-          </div>
-          {[...Array(4)].map((_, i) => (
-            <div key={`fw-${i}`} className="absolute pointer-events-none" style={{ left: `${15 + Math.random() * 70}%`, top: `${10 + Math.random() * 40}%`}}>
-               {[...Array(25)].map((_, j) => (
-                 <div key={`fwp-${j}`} className="absolute animate-firework w-2 h-2 rounded-full" style={{ '--tx': `${(Math.random() - 0.5) * 300}px`, '--ty': `${(Math.random() - 0.5) * 300}px`, '--r': '0deg', backgroundColor: ['#FDE047', '#F87171', '#60A5FA', '#34D399'][Math.floor(Math.random()*4)], animationDelay: `${i * 0.3}s`, animationDuration: '1.5s' }}></div>
-               ))}
-            </div>
-          ))}
-          <div className="bg-white rounded-[3rem] p-10 px-12 text-center shadow-[0_0_60px_rgba(0,0,0,0.3)] animate-pop-in relative z-10 max-w-sm mx-4 mt-16">
-            <div className={`absolute -top-20 left-1/2 -translate-x-1/2 rounded-full animate-bounce-slow glow-${tier.glowClass}`}>
-              <DragonBall stars={tier.stars} size={140} />
-              <Star size={28} className="absolute -top-2 -right-4 text-yellow-300 animate-sparkle" fill="currentColor" />
-              <Star size={18} className="absolute bottom-6 -left-6 text-yellow-300 animate-sparkle" fill="currentColor" style={{ animationDelay: '0.7s' }} />
-              <Star size={12} className="absolute top-1/2 -right-6 text-white animate-sparkle" fill="currentColor" style={{ animationDelay: '1.2s' }} />
-            </div>
-            <h2 className="text-2xl font-black mt-16 mb-2" style={{ color: '#4A4A4A' }}>{unlock.isClaiming ? '成功領取成就！' : '解鎖新成就門檻！'}</h2>
-            <p className="text-gray-500 mb-4 font-medium">{PREFIXES[category]}</p>
-            <div className={`text-3xl sm:text-4xl font-black mb-8 ${tier.textColor || 'text-gray-800'}`}>{tier.name}</div>
-            <button onClick={onClose} className="w-full py-4 rounded-full text-white font-bold text-lg hover:scale-105 transition-transform shadow-md" style={{ backgroundColor: '#9CAE96' }}>{unlock.isClaiming ? '太棒了！' : '繼續答題'}</button>
-          </div>
         </div>
       );
     }
@@ -524,29 +491,29 @@
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-[#E8E6E1] flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${COLORS.secondary}20` }}><BookOpen size={32} style={{ color: COLORS.secondary }} /></div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: COLORS.textMain }}>全題庫練習</h2>
-            <p className="mb-6 text-sm" style={{ color: COLORS.textMuted }}>依照順序，穩紮穩打完成所有題目。</p>
-            <button onClick={() => startQuiz('tf_full')} className="w-full py-4 rounded-3xl mb-3 font-medium transition-transform hover:scale-[1.02] text-white" style={{ backgroundColor: COLORS.secondary }}>是非題 ({tfProgress}/{tfTotal})</button>
-            <button onClick={() => startQuiz('mc_full')} className="w-full py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] text-white" style={{ backgroundColor: COLORS.secondary }}>選擇題 ({mcProgress}/{mcTotal})</button>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-[#9CAE96]/20"><BookOpen size={32} className="text-[#9CAE96]" /></div>
+            <h2 className="text-xl font-bold mb-2 text-gray-700">全題庫練習</h2>
+            <p className="mb-6 text-sm text-gray-400">依照順序，穩紮穩打完成所有題目。</p>
+            <button onClick={() => startQuiz('tf_full')} className="w-full py-4 rounded-3xl mb-3 font-medium transition-transform hover:scale-[1.02] text-white bg-[#9CAE96]">是非題 ({tfProgress}/{tfTotal})</button>
+            <button onClick={() => startQuiz('mc_full')} className="w-full py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] text-white bg-[#9CAE96]">選擇題 ({mcProgress}/{mcTotal})</button>
           </div>
           <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-[#E8E6E1] flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${COLORS.primary}20` }}><Clock size={32} style={{ color: COLORS.primary }} /></div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: COLORS.textMain }}>隨機 20 題練習</h2>
-            <p className="mb-6 text-sm" style={{ color: COLORS.textMuted }}>打亂順序，快速檢驗學習成效。</p>
-            <button onClick={() => startQuiz('tf_random')} className="w-full py-4 rounded-3xl mb-3 font-medium transition-transform hover:scale-[1.02] text-white" style={{ backgroundColor: COLORS.primary }}>是非題隨堂測驗</button>
-            <button onClick={() => startQuiz('mc_random')} className="w-full py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] text-white" style={{ backgroundColor: COLORS.primary }}>選擇題隨堂測驗</button>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-[#7B929A]/20"><Clock size={32} className="text-[#7B929A]" /></div>
+            <h2 className="text-xl font-bold mb-2 text-gray-700">隨機 20 題練習</h2>
+            <p className="mb-6 text-sm text-gray-400">打亂順序，快速檢驗學習成效。</p>
+            <button onClick={() => startQuiz('tf_random')} className="w-full py-4 rounded-3xl mb-3 font-medium transition-transform hover:scale-[1.02] text-white bg-[#7B929A]">是非題隨堂測驗</button>
+            <button onClick={() => startQuiz('mc_random')} className="w-full py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] text-white bg-[#7B929A]">選擇題隨堂測驗</button>
           </div>
           <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-[#E8E6E1] flex flex-col items-center text-center md:col-span-2">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${COLORS.accent}20` }}><Star size={32} style={{ color: COLORS.accent }} /></div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: COLORS.textMain }}>全真模擬試題</h2>
-            <p className="mb-6 text-sm" style={{ color: COLORS.textMuted }}>是非 50 題 + 選擇 50 題，限時 100 分鐘。</p>
-            <button onClick={() => startQuiz('mock')} className="w-full max-w-md py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] text-white" style={{ backgroundColor: COLORS.accent }}>開始全真模擬</button>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-[#C7A38B]/20"><Star size={32} className="text-[#C7A38B]" /></div>
+            <h2 className="text-xl font-bold mb-2 text-gray-700">全真模擬試題</h2>
+            <p className="mb-6 text-sm text-gray-400">是非 50 題 + 選擇 50 題，限時 100 分鐘。</p>
+            <button onClick={() => startQuiz('mock')} className="w-full max-w-md py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] text-white bg-[#C7A38B]">開始全真模擬</button>
           </div>
           <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-[#E8E6E1] flex flex-col items-center text-center md:col-span-2">
              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-50"><AlertCircle size={32} className="text-red-400" /></div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: COLORS.textMain }}>錯題強化練習</h2>
-            <p className="mb-6 text-sm" style={{ color: COLORS.textMuted }}>針對曾答錯的題目進行特訓。需連續答對 3 次才能移出錯題本喔！</p>
+            <h2 className="text-xl font-bold mb-2 text-gray-700">錯題強化練習</h2>
+            <p className="mb-6 text-sm text-gray-400">針對曾答錯的題目進行特訓。需連續答對 3 次才能移出錯題本喔！</p>
             <button onClick={() => mistakeCount > 0 ? startQuiz('mistakes') : showModal('提示', '目前沒有錯題喔！繼續保持！')} className={`w-full max-w-md py-4 rounded-3xl font-medium transition-transform hover:scale-[1.02] ${mistakeCount > 0 ? 'bg-red-400 text-white shadow-md' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}>進入強化庫 ({mistakeCount} 題)</button>
           </div>
         </div>
@@ -585,11 +552,7 @@
         if (!user || !currentQ) return;
         const mistakeRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mistakes', currentQ.id);
         if (isBookmarked) await deleteDoc(mistakeRef);
-        else await setDoc(mistakeRef, { 
-            question: currentQ.question, type: currentQ.type, 
-            isMultiple: currentQ.isMultiple || false,
-            answer: currentQ.answer, options: currentQ.options || null, explanation: currentQ.explanation, streak: 0, bookmarked: true, lastFailed: new Date().toISOString() 
-        }, { merge: true });
+        else await setDoc(mistakeRef, { question: currentQ.question, type: currentQ.type, isMultiple: currentQ.isMultiple || false, answer: currentQ.answer, options: currentQ.options || null, explanation: currentQ.explanation, streak: 0, bookmarked: true, lastFailed: new Date().toISOString() }, { merge: true });
       };
 
       useEffect(() => {
@@ -620,8 +583,7 @@
         
         setSelectedAnswer(newSelected);
         if (mode === 'mock') {
-          const newAnswers = [...userAnswers];
-          newAnswers[currentIndex] = { selectedAnswer: newSelected };
+          const newAnswers = [...userAnswers]; newAnswers[currentIndex] = { selectedAnswer: newSelected };
           setUserAnswers(newAnswers); setIsAnswered(true);
         } else {
           if (currentQ.type === 'tf' || !currentQ.isMultiple) processSubmit(newSelected);
@@ -635,12 +597,10 @@
 
         setIsAnswered(true);
         let isCorrect = false;
-        if (currentQ.isMultiple) {
-          isCorrect = [...evalTarget].sort().join('') === currentQ.answer.split('').sort().join('');
-        } else isCorrect = evalTarget === currentQ.answer;
+        if (currentQ.isMultiple) isCorrect = [...evalTarget].sort().join('') === currentQ.answer.split('').sort().join('');
+        else isCorrect = evalTarget === currentQ.answer;
         
-        const newAnswers = [...userAnswers];
-        newAnswers[currentIndex] = { isCorrect, selectedAnswer: evalTarget };
+        const newAnswers = [...userAnswers]; newAnswers[currentIndex] = { isCorrect, selectedAnswer: evalTarget };
         setUserAnswers(newAnswers);
         if (isCorrect) setScore(s => s + 1);
         handleMistakeUpdate(currentQ, isCorrect);
@@ -656,15 +616,10 @@
         let currentScore = 0;
         const evaluatedAnswers = userAnswers.map((ansObj, idx) => {
            const q = questions[idx];
-           if (!ansObj || !ansObj.selectedAnswer || ansObj.selectedAnswer.length === 0) {
-              handleMistakeUpdate(q, false); return { isCorrect: false, selectedAnswer: null };
-           }
-           let isCorrect = q.isMultiple 
-             ? [...ansObj.selectedAnswer].sort().join('') === q.answer.split('').sort().join('')
-             : ansObj.selectedAnswer === q.answer;
+           if (!ansObj || !ansObj.selectedAnswer || ansObj.selectedAnswer.length === 0) { handleMistakeUpdate(q, false); return { isCorrect: false, selectedAnswer: null }; }
+           let isCorrect = q.isMultiple ? [...ansObj.selectedAnswer].sort().join('') === q.answer.split('').sort().join('') : ansObj.selectedAnswer === q.answer;
            if (isCorrect) currentScore++;
-           handleMistakeUpdate(q, isCorrect);
-           return { isCorrect, selectedAnswer: ansObj.selectedAnswer };
+           handleMistakeUpdate(q, isCorrect); return { isCorrect, selectedAnswer: ansObj.selectedAnswer };
         });
         setUserAnswers(evaluatedAnswers); setScore(currentScore);
         updateStats({ mock_completed: userStats.mock_completed + 1, ...(currentScore === 100 && {mock_perfect: userStats.mock_perfect + 1}) });
@@ -674,28 +629,19 @@
       const nextQuestion = () => {
         if (mode === 'mock' && mockPart === 1 && currentIndex === 49) {
           showModal("進入第二部分", "確定要結束是非題部分，進入選擇題嗎？進入後將無法修改是非題答案。", "confirm", () => {
-              setMockPart(2); setCurrentIndex(50); setTimeLeft(timeLimit);
-              setSelectedAnswer(userAnswers[50]?.selectedAnswer || null);
-              setIsAnswered(!!userAnswers[50]); setShowExplanation(false);
+              setMockPart(2); setCurrentIndex(50); setTimeLeft(timeLimit); setSelectedAnswer(userAnswers[50]?.selectedAnswer || null); setIsAnswered(!!userAnswers[50]); setShowExplanation(false);
           }); return;
         }
         if (currentIndex < questions.length - 1) {
-          setCurrentIndex(c => c + 1);
-          setSelectedAnswer(userAnswers[currentIndex + 1]?.selectedAnswer || null);
-          setIsAnswered(!!userAnswers[currentIndex + 1]); setShowExplanation(false);
+          setCurrentIndex(c => c + 1); setSelectedAnswer(userAnswers[currentIndex + 1]?.selectedAnswer || null); setIsAnswered(!!userAnswers[currentIndex + 1]); setShowExplanation(false);
         } else {
-          if (mode === 'mock') showModal("確認交卷", "確定要交卷嗎？未作答的題目將以 0 分計算。", "confirm", () => evaluateMockExam());
-          else finishQuiz();
+          if (mode === 'mock') showModal("確認交卷", "確定要交卷嗎？未作答的題目將以 0 分計算。", "confirm", () => evaluateMockExam()); else finishQuiz();
         }
       };
 
       const prevQuestion = () => {
         if (mode === 'mock' && mockPart === 2 && currentIndex === 50) return;
-        if (currentIndex > 0) {
-          setCurrentIndex(c => c - 1);
-          setSelectedAnswer(userAnswers[currentIndex - 1]?.selectedAnswer || null);
-          setIsAnswered(!!userAnswers[currentIndex - 1]); setShowExplanation(false);
-        }
+        if (currentIndex > 0) { setCurrentIndex(c => c - 1); setSelectedAnswer(userAnswers[currentIndex - 1]?.selectedAnswer || null); setIsAnswered(!!userAnswers[currentIndex - 1]); setShowExplanation(false); }
       };
 
       const jumpToQuestion = (targetIndex) => {
@@ -703,34 +649,24 @@
           if (mockPart === 1 && targetIndex >= 50) { showModal("提示", "這部分是選擇題，請先完成是非題部分！"); return; }
           if (mockPart === 2 && targetIndex < 50) { showModal("提示", "是非題部分已結束，目前無法返回修改。"); return; }
         }
-        setCurrentIndex(targetIndex);
-        setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null);
-        setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
+        setCurrentIndex(targetIndex); setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
       };
 
       const finishQuiz = () => {
         setIsFinished(true);
         if (mode === 'tf_random') updateStats({ tf_random_completed: userStats.tf_random_completed + 1, ...(score === 20 && {tf_random_perfect: userStats.tf_random_perfect + 1}) });
         else if (mode === 'mc_random') updateStats({ mc_random_completed: userStats.mc_random_completed + 1, ...(score === 20 && {mc_random_perfect: userStats.mc_random_perfect + 1}) });
-        else if (mode === 'mock') {
-           const finalScore = userAnswers.filter(a => a && a.isCorrect).length;
-           updateStats({ mock_completed: userStats.mock_completed + 1, ...(finalScore === 100 && {mock_perfect: userStats.mock_perfect + 1}) });
-        }
+        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length; updateStats({ mock_completed: userStats.mock_completed + 1, ...(finalScore === 100 && {mock_perfect: userStats.mock_perfect + 1}) }); }
       };
 
       const formatTime = (seconds) => { const m = Math.floor(seconds / 60); const s = seconds % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; };
 
       const renderNavButton = (idx) => {
-        const isAnsweredLocal = !!userAnswers[idx];
-        const isCurrent = idx === currentIndex;
+        const isAnsweredLocal = !!userAnswers[idx]; const isCurrent = idx === currentIndex;
         let isDisabled = (mode === 'mock' && ((mockPart === 1 && idx >= 50) || (mockPart === 2 && idx < 50)));
         const displayNum = mode === 'mock' ? (idx < 50 ? idx + 1 : idx - 49) : idx + 1;
         return (
-          <button key={idx} onClick={() => jumpToQuestion(idx)} disabled={isDisabled}
-            className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center font-bold text-sm transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-100 text-gray-400' : isCurrent ? 'ring-4 ring-offset-2 scale-110 z-10' : isAnsweredLocal ? 'hover:opacity-80' : 'bg-white shadow-sm border text-gray-500 hover:bg-gray-50'}`}
-            style={{ backgroundColor: isAnsweredLocal && !isDisabled ? COLORS.secondary : undefined, color: isAnsweredLocal && !isDisabled ? 'white' : undefined, '--tw-ring-color': isCurrent ? COLORS.accent : undefined }}>
-            {displayNum}
-          </button>
+          <button key={idx} onClick={() => jumpToQuestion(idx)} disabled={isDisabled} className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center font-bold text-sm transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-100 text-gray-400' : isCurrent ? 'ring-4 ring-offset-2 scale-110 z-10' : isAnsweredLocal ? 'hover:opacity-80' : 'bg-white shadow-sm border text-gray-500 hover:bg-gray-50'}`} style={{ backgroundColor: isAnsweredLocal && !isDisabled ? '#9CAE96' : undefined, color: isAnsweredLocal && !isDisabled ? 'white' : undefined, '--tw-ring-color': isCurrent ? '#C7A38B' : undefined }}>{displayNum}</button>
         );
       };
 
@@ -739,8 +675,8 @@
           const totalCorrect = userAnswers.filter(a => a && a.isCorrect).length;
           return (
             <div className="bg-white rounded-[3.5rem] p-8 md:p-12 shadow-sm border border-[#E8E6E1] mt-8 max-w-5xl mx-auto">
-              <h2 className="text-3xl font-bold mb-4 text-center" style={{ color: COLORS.textMain }}>全真模擬測驗 結算報告</h2>
-              <div className="text-6xl font-black mb-10 text-center" style={{ color: COLORS.primary }}>{totalCorrect} <span className="text-2xl text-gray-400">/ 100</span></div>
+              <h2 className="text-3xl font-bold mb-4 text-center text-gray-700">全真模擬測驗 結算報告</h2>
+              <div className="text-6xl font-black mb-10 text-center text-[#7B929A]">{totalCorrect} <span className="text-2xl text-gray-400">/ 100</span></div>
               <div className="space-y-4 mb-8 h-[60vh] overflow-y-auto pr-4 scrollbar-hide">
                 {questions.map((q, idx) => {
                   const ans = userAnswers[idx]; const isCorrect = ans?.isCorrect;
@@ -754,18 +690,18 @@
                   )
                 })}
               </div>
-              <div className="text-center pt-6 border-t border-gray-100"><p className="mb-6" style={{ color: COLORS.textMuted }}>錯題已自動加入「錯題強化練習」庫，記得回去複習喔！</p><button onClick={onExit} className="px-10 py-4 rounded-full font-bold text-white shadow-md transition-transform hover:scale-[1.05]" style={{ backgroundColor: COLORS.secondary }}>返回首頁</button></div>
+              <div className="text-center pt-6 border-t border-gray-100"><p className="mb-6 text-gray-400">錯題已自動加入「錯題強化練習」庫，記得回去複習喔！</p><button onClick={onExit} className="px-10 py-4 rounded-full font-bold text-white shadow-md transition-transform hover:scale-[1.05] bg-[#9CAE96]">返回首頁</button></div>
             </div>
           );
         }
         const totalCorrect = userAnswers.filter(a => a && a.isCorrect).length;
         return (
           <div className="bg-white rounded-[3.5rem] p-8 md:p-12 shadow-sm border border-[#E8E6E1] text-center mt-8">
-            <Trophy size={64} style={{ color: COLORS.accent }} className="mx-auto mb-6" />
-            <h2 className="text-3xl font-bold mb-4" style={{ color: COLORS.textMain }}>測驗完成！</h2>
-            <div className="text-6xl font-black mb-6" style={{ color: COLORS.primary }}>{totalCorrect} <span className="text-2xl text-gray-400">/ {questions.length}</span></div>
-            <p className="mb-8" style={{ color: COLORS.textMuted }}>錯題已自動加入「錯題強化練習」庫，記得回去複習喔！</p>
-            <button onClick={onExit} className="px-8 py-4 rounded-full font-bold text-white shadow-md transition-transform hover:scale-[1.05]" style={{ backgroundColor: COLORS.secondary }}>返回首頁</button>
+            <Trophy size={64} className="mx-auto mb-6 text-[#C7A38B]" />
+            <h2 className="text-3xl font-bold mb-4 text-gray-700">測驗完成！</h2>
+            <div className="text-6xl font-black mb-6 text-[#7B929A]">{totalCorrect} <span className="text-2xl text-gray-400">/ {questions.length}</span></div>
+            <p className="mb-8 text-gray-400">錯題已自動加入「錯題強化練習」庫，記得回去複習喔！</p>
+            <button onClick={onExit} className="px-8 py-4 rounded-full font-bold text-white shadow-md transition-transform hover:scale-[1.05] bg-[#9CAE96]">返回首頁</button>
           </div>
         );
       }
@@ -774,14 +710,14 @@
         <div className="mt-6">
           <div className="flex flex-wrap justify-between items-center mb-6 gap-y-4 px-2">
             <div className="flex items-center gap-2">
-              <span className="px-4 py-1.5 rounded-full text-sm font-medium text-white shadow-sm" style={{ backgroundColor: COLORS.primary }}>{PREFIXES[mode] || '錯題練習'}</span>
-              <span className="px-4 py-1.5 rounded-full text-sm font-medium text-white shadow-sm" style={{ backgroundColor: COLORS.secondary }}>{mode === 'mock' ? `第 ${mockPart} 部分: ${mockPart === 1 ? '是非題' : '選擇題'} (${currentIndex + 1 - (mockPart === 1 ? 0 : 50)} / 50)` : `題號 ${currentIndex + 1} / ${questions.length}`}</span>
+              <span className="px-4 py-1.5 rounded-full text-sm font-medium text-white shadow-sm bg-[#7B929A]">{PREFIXES[mode] || '錯題練習'}</span>
+              <span className="px-4 py-1.5 rounded-full text-sm font-medium text-white shadow-sm bg-[#9CAE96]">{mode === 'mock' ? `第 ${mockPart} 部分: ${mockPart === 1 ? '是非題' : '選擇題'} (${currentIndex + 1 - (mockPart === 1 ? 0 : 50)} / 50)` : `題號 ${currentIndex + 1} / ${questions.length}`}</span>
               <button onClick={toggleBookmark} className={`ml-1 p-1.5 rounded-full transition-colors shrink-0 shadow-sm ${isBookmarked ? 'text-yellow-500 bg-white hover:text-yellow-600' : 'text-gray-400 bg-white/50 hover:text-yellow-500 hover:bg-white'}`} title={isBookmarked ? "移除書籤" : "加入書籤 (加入錯題庫)"}><Bookmark size={20} fill={isBookmarked ? "currentColor" : "none"} /></button>
             </div>
             <div className="flex items-center gap-2 md:gap-3 ml-auto">
               {timeLimit !== null && <div className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${timeLeft < 300 ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}>剩餘: {formatTime(timeLeft)}</div>}
-              <button onClick={() => setIsMenuOpen(true)} className="flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-medium border-2 bg-white hover:bg-gray-50 transition-colors shadow-sm" style={{ borderColor: COLORS.border, color: COLORS.textMain }}><LayoutGrid size={16} /><span className="hidden sm:inline">題號選單</span></button>
-              <button onClick={() => { if(isFullMode) saveProgress(mode, currentIndex); onExit(); }} className="flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-medium border-2 hover:bg-gray-50 transition-colors bg-white shadow-sm" style={{ borderColor: COLORS.primary, color: COLORS.primary }}><Save size={16} /><span className="hidden sm:inline">{isFullMode ? '儲存進度並回首頁' : '中斷並回首頁'}</span></button>
+              <button onClick={() => setIsMenuOpen(true)} className="flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-medium border-2 bg-white hover:bg-gray-50 transition-colors shadow-sm text-gray-700"><LayoutGrid size={16} /><span className="hidden sm:inline">題號選單</span></button>
+              <button onClick={() => { if(isFullMode) saveProgress(mode, currentIndex); onExit(); }} className="flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-medium border-2 hover:bg-gray-50 transition-colors bg-white shadow-sm text-[#7B929A] border-[#7B929A]"><Save size={16} /><span className="hidden sm:inline">{isFullMode ? '儲存進度並回首頁' : '中斷並回首頁'}</span></button>
             </div>
           </div>
 
@@ -789,10 +725,10 @@
             <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm transition-opacity">
               <div className="absolute inset-0" onClick={() => setIsMenuOpen(false)}></div>
               <div className="w-80 md:w-96 bg-[#F4F1EB] h-full shadow-2xl p-6 overflow-y-auto animate-slide-in-right flex flex-col relative">
-                <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#E8E6E1]"><h3 className="text-xl font-bold" style={{ color: COLORS.textMain }}>題目總覽 <span className="text-sm font-normal text-gray-500 ml-2">點擊跳轉</span></h3><button onClick={() => setIsMenuOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100 shadow-sm transition-colors text-gray-600"><X size={20} /></button></div>
+                <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#E8E6E1]"><h3 className="text-xl font-bold text-gray-700">題目總覽 <span className="text-sm font-normal text-gray-500 ml-2">點擊跳轉</span></h3><button onClick={() => setIsMenuOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100 shadow-sm transition-colors text-gray-600"><X size={20} /></button></div>
                 <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
                   {mode === 'mock' ? (
-                    <><div className="mb-3 font-bold" style={{ color: COLORS.primary }}>第一部分：是非題 (1-50)</div><div className="grid grid-cols-5 gap-3 mb-8">{questions.slice(0, 50).map((q, i) => renderNavButton(i))}</div><div className="mb-3 font-bold" style={{ color: COLORS.primary }}>第二部分：選擇題 (1-50)</div><div className="grid grid-cols-5 gap-3 pb-8">{questions.slice(50, 100).map((q, i) => renderNavButton(i + 50))}</div></>
+                    <><div className="mb-3 font-bold text-[#7B929A]">第一部分：是非題 (1-50)</div><div className="grid grid-cols-5 gap-3 mb-8">{questions.slice(0, 50).map((q, i) => renderNavButton(i))}</div><div className="mb-3 font-bold text-[#7B929A]">第二部分：選擇題 (1-50)</div><div className="grid grid-cols-5 gap-3 pb-8">{questions.slice(50, 100).map((q, i) => renderNavButton(i + 50))}</div></>
                   ) : (<div className="grid grid-cols-5 gap-3 pb-8">{questions.map((q, i) => renderNavButton(i))}</div>)}
                 </div>
               </div>
@@ -801,7 +737,7 @@
 
           <div className="bg-white rounded-[3.5rem] p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#E8E6E1] relative min-h-[400px] flex flex-col">
             <button onClick={prevQuestion} disabled={currentIndex === 0 || (mode === 'mock' && mockPart === 2 && currentIndex === 50)} className="absolute left-[-20px] md:left-[-40px] top-1/2 -translate-y-1/2 p-3 bg-white rounded-full shadow-md border border-gray-100 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110 transition-transform text-gray-500 z-10"><ChevronLeft size={28} /></button>
-            <div className="mb-10"><h3 className="text-xl md:text-2xl font-medium leading-relaxed" style={{ color: COLORS.textMain }}>{currentQ.question}</h3></div>
+            <div className="mb-10"><h3 className="text-xl md:text-2xl font-medium leading-relaxed text-gray-700">{currentQ.question}</h3></div>
             <div className="flex flex-col gap-4 mb-8">
               {currentQ.type === 'tf' ? (
                 <div className="grid grid-cols-2 gap-4">
@@ -813,7 +749,6 @@
               ) : (
                 currentQ.options.map((opt, idx) => {
                   const optionLabel = String(idx + 1);
-                  
                   const isSelected = currentQ.isMultiple ? Array.isArray(selectedAnswer) && selectedAnswer.includes(optionLabel) : selectedAnswer === optionLabel;
                   const isCorrectOpt = (currentQ.isMultiple ? currentQ.answer.split('') : [currentQ.answer]).includes(optionLabel);
                   let btnClass = 'bg-white border-gray-200 text-gray-700 hover:border-gray-300';
@@ -830,12 +765,12 @@
             {mode === 'mock' ? (
               <div className="flex justify-between items-center w-full border-t pt-6 border-gray-100 mt-auto">
                 <button onClick={prevQuestion} disabled={currentIndex === 0 || (mockPart === 2 && currentIndex === 50)} className="px-6 py-3 rounded-full font-bold text-gray-500 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed">上一題</button>
-                <button onClick={nextQuestion} className="px-8 py-3 rounded-full text-white font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105" style={{ backgroundColor: COLORS.secondary }}>{mockPart === 1 && currentIndex === 49 ? '進入選擇題' : currentIndex === questions.length - 1 ? '完成交卷' : '下一題'} <ChevronRight size={20} /></button>
+                <button onClick={nextQuestion} className="px-8 py-3 rounded-full text-white font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 bg-[#9CAE96]">{mockPart === 1 && currentIndex === 49 ? '進入選擇題' : currentIndex === questions.length - 1 ? '完成交卷' : '下一題'} <ChevronRight size={20} /></button>
               </div>
             ) : (!isAnswered && !currentQ.isMultiple) ? null : (
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-t pt-6 border-gray-100 mt-auto">
                  {!isAnswered ? (
-                   <button onClick={() => processSubmit(selectedAnswer)} disabled={currentQ.isMultiple ? !selectedAnswer || selectedAnswer.length === 0 : !selectedAnswer} className="w-full md:w-auto px-10 py-3 rounded-full text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ backgroundColor: COLORS.primary }}>送出答案</button>
+                   <button onClick={() => processSubmit(selectedAnswer)} disabled={currentQ.isMultiple ? !selectedAnswer || selectedAnswer.length === 0 : !selectedAnswer} className="w-full md:w-auto px-10 py-3 rounded-full text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#7B929A]">送出答案</button>
                  ) : (
                    <div className="flex flex-col w-full">
                      <div className="flex justify-between items-center w-full mb-4">
@@ -843,7 +778,7 @@
                          {userAnswers[currentIndex]?.isCorrect ? <span className="px-3 py-1 bg-green-100 text-green-700 font-bold rounded-lg">答對了！</span> : <span className="px-3 py-1 bg-red-100 text-red-700 font-bold rounded-lg">答錯囉</span>}
                          {currentQ.explanation && currentQ.explanation !== '無解析' && <button onClick={() => setShowExplanation(!showExplanation)} className="text-sm underline text-gray-500 hover:text-gray-800">{showExplanation ? '隱藏解析' : '查看解析'}</button>}
                        </div>
-                       <button onClick={nextQuestion} className="px-10 py-3 rounded-full text-white font-bold transition-all hover:scale-105 shadow-md flex items-center gap-2" style={{ backgroundColor: COLORS.secondary }}>{currentIndex === questions.length - 1 ? '完成測驗' : '下一題'} <ChevronRight size={20} /></button>
+                       <button onClick={nextQuestion} className="px-10 py-3 rounded-full text-white font-bold transition-all hover:scale-105 shadow-md flex items-center gap-2 bg-[#9CAE96]">{currentIndex === questions.length - 1 ? '完成測驗' : '下一題'} <ChevronRight size={20} /></button>
                      </div>
                      {showExplanation && <div className="bg-gray-50 p-4 rounded-xl text-gray-700 text-sm mt-2 border border-gray-200"><strong>解析：</strong> {currentQ.explanation}</div>}
                    </div>
@@ -859,13 +794,13 @@
     function AchievementWall({ stats, claimed, onClaim, showModal, tfTotal, mcTotal }) {
       return (
         <div className="mt-8 pb-12">
-          <div className="text-center mb-10"><h2 className="text-3xl font-bold mb-2" style={{ color: COLORS.textMain }}>成就獎章牆</h2><p style={{ color: COLORS.textMuted }}>達成門檻後，點擊發光的徽章解鎖成就！</p></div>
+          <div className="text-center mb-10"><h2 className="text-3xl font-bold mb-2 text-gray-700">成就塔羅牌</h2><p className="text-gray-400">達成門檻後，點擊發光的牌陣解鎖女神神識！</p></div>
           <div className="space-y-12">
             {Object.keys(PREFIXES).map(category => (
               <div key={category} className="bg-white rounded-[3rem] p-8 shadow-sm border border-[#E8E6E1]">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b pb-4" style={{ color: COLORS.primary }}><Trophy size={20} /> {PREFIXES[category]}</h3>
+                <h3 className="text-xl font-bold mb-8 flex items-center gap-2 border-b pb-4 text-[#7B929A]"><Trophy size={20} /> {PREFIXES[category]}</h3>
                 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-y-10 gap-x-4">
                   {ACHIEVEMENT_TIERS.map(tier => {
                     const achieveId = `${category}_${tier.id}`;
                     const isClaimed = claimed.includes(achieveId);
@@ -880,23 +815,23 @@
                         else if (category.includes('random')) reqText = th.random_perfect ? `在「${prefix}」中，完成 ${th.random} 次以上測驗，且獲得滿分 ${th.random_perfect} 次。` : `在「${prefix}」中，完成 ${th.random} 次測驗。`;
                         else if (category === 'mock') reqText = th.mock_perfect ? `在「全真模擬測驗」中，完成 ${th.mock} 次以上測驗，且獲得滿分 ${th.mock_perfect} 次。` : `完成 ${th.mock} 次全真模擬測驗。`;
                         showModal(`解鎖條件：${tier.name}`, reqText);
-                      } else showModal(`成就已達成：${tier.name}`, "太棒了！你已經獲得這顆龍珠囉！繼續保持！");
+                      } else showModal(`身份確認：${tier.name}`, "這張塔羅牌已經被你喚醒了！繼續精進實力吧！");
                     };
                     
-                    let buttonClass = 'w-24 h-24 rounded-full flex items-center justify-center mb-3 transition-all duration-300 relative ';
-                    if (isClaimed) buttonClass += 'glow-' + tier.glowClass + ' hover:scale-110 cursor-pointer';
-                    else if (isClaimable) buttonClass += 'breathing-halo hover:scale-110 cursor-pointer';
-                    else buttonClass += 'opacity-50 cursor-pointer hover:opacity-100 hover:scale-105';
+                    let buttonClass = 'relative rounded-full flex flex-col items-center justify-center transition-all duration-300 w-full ';
+                    if (isClaimed) buttonClass += ' hover:scale-110 cursor-pointer';
+                    else if (isClaimable) buttonClass += ' hover:scale-110 cursor-pointer drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]';
+                    else buttonClass += ' opacity-60 cursor-pointer hover:opacity-100 hover:scale-105';
                     
                     return (
                       <div key={achieveId} className="flex flex-col items-center">
                         <button onClick={handleTrophyClick} className={buttonClass}>
-                          <DragonBall stars={tier.stars} size={84} isGrayscale={!isClaimed} />
-                          {isClaimable && <div className="absolute -bottom-1 text-white font-bold text-xs bg-yellow-500 px-3 py-1 rounded-full shadow-md animate-pulse z-10">點擊領取</div>}
+                          <GoddessBadge level={tier.level} size={84} isGrayscale={!isClaimed} tierInfo={tier} />
+                          {isClaimable && <div className="absolute -bottom-2 text-white font-bold text-xs bg-yellow-500 px-4 py-1.5 rounded-full shadow-md animate-bounce z-20 whitespace-nowrap">點擊喚醒</div>}
                         </button>
-                        <div className="text-center mt-2">
-                          <div className={`font-bold text-sm ${isClaimed ? 'text-gray-800' : 'text-gray-400'}`}>{tier.name}</div>
-                          <div className="text-xs text-gray-400 mt-1 whitespace-pre-wrap text-center">
+                        <div className="text-center mt-6">
+                          <div className={`font-bold text-sm ${isClaimed ? tier.textColor : 'text-gray-400'}`}>{tier.name}</div>
+                          <div className="text-xs text-gray-400 mt-1 whitespace-pre-wrap text-center leading-relaxed">
                              {category.includes('full') && `進度 ${Math.round(tier.threshold.percent * 100)}%\n(${Math.ceil(tier.threshold.percent * (category === 'tf_full' ? tfTotal : mcTotal))}題)`}
                              {category.includes('random') && (tier.threshold.random_perfect ? `完成 ${tier.threshold.random} 次\n滿分 ${tier.threshold.random_perfect} 次` : `完成 ${tier.threshold.random} 次`)}
                              {category === 'mock' && (tier.threshold.mock_perfect ? `完成 ${tier.threshold.mock} 次\n滿分 ${tier.threshold.mock_perfect} 次` : `完成 ${tier.threshold.mock} 次`)}
