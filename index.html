@@ -648,6 +648,40 @@
         setCurrentIndex(targetIndex); setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
       };
 
+      // 【新增】鍵盤快捷鍵監聽
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          // 若選單開啟，或有彈出視窗(Modal)存在時，停用快捷鍵
+          if (isMenuOpen || document.querySelector('.z-\\[100\\]')) return;
+
+          const key = e.key;
+          const lowerKey = key?.toLowerCase();
+
+          if (key === 'ArrowRight' || lowerKey === 'd') {
+            nextQuestion();
+          } else if (key === 'ArrowLeft' || lowerKey === 'a') {
+            // 避免在第一題或模擬測驗第二部分第一題往前跳
+            if (currentIndex > 0 && !(mode === 'mock' && mockPart === 2 && currentIndex === 50)) {
+              prevQuestion();
+            }
+          } else if (['1', '2', '3', '4', '5'].includes(key)) {
+            if (currentQ.type === 'tf') {
+              // 是非題直覺對應：1為O，2為X
+              if (key === '1') handleSelect('O');
+              if (key === '2') handleSelect('X');
+            } else {
+              // 選擇題對應1~5選項
+              if (parseInt(key) <= currentQ.options.length) {
+                handleSelect(key);
+              }
+            }
+          }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      });
+
       // 【防禦性設計】：使用 || 0 確保就算資料庫抓不到該欄位，也能當作 0 來 +1，避免出錯
       const finishQuiz = () => {
         setIsFinished(true);
