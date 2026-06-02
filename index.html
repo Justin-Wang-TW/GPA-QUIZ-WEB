@@ -87,7 +87,7 @@
     const COLORS = { bg: '#F4F1EB', cardBg: '#FFFFFF', primary: '#7B929A', secondary: '#9CAE96', accent: '#C7A38B', textMain: '#4A4A4A', textMuted: '#8A8A8A', border: '#E8E6E1' };
 
     // ==========================================
-    // 🎨 設定你的 10 張女神圖片網址 (已轉換為直接讀取格式)
+    // 🎨 設定 10 張女神圖片網址
     // ==========================================
     const BADGE_IMAGES = {
       1: "https://drive.google.com/uc?export=view&id=1Pc8y3Acr5SwZqlIhTmV9cZwrqK995pUr", // 初入遺跡的新兵
@@ -99,7 +99,7 @@
       7: "https://drive.google.com/uc?export=view&id=12oClesD0vpJpL_D-SppSVuVjQ3Xps8-U", // 考場神殿的守門員
       8: "https://drive.google.com/uc?export=view&id=1qEqWs-GXfsbq2wKMCpGPjxUebxQZr5Sz", // 亙古考場的月桂冠
       9: "https://drive.google.com/uc?export=view&id=1G8dgfm0dJ5p5oNFfVLFdffAJrXpUeAY7", // 全知之眼的支配者
-      10: "https://drive.google.com/uc?export=view&id=1-qXhxAOy-hT8ejwbb0zy9AmOuBolPmlN",// 零死角的真理之門
+      10: "https://drive.google.com/uc?export=view&id=1-qXhxAOy-hT8ejwbb0zy9AmOuBolPmlN",// 零死角的真理之源
     };
 
     const ACHIEVEMENT_TIERS = [
@@ -112,7 +112,7 @@
       { id: 't7', name: '考場神殿的守門員', level: 7, color: 'gold', anim: 'holy', textColor: 'text-[#9400D3]', threshold: { percent: 0.7, random: 7, mock: 7 } },
       { id: 't8', name: '亙古考場的月桂冠', level: 8, color: 'gold', anim: 'holy', textColor: 'text-[#9400D3]', threshold: { percent: 0.8, random: 8, mock: 8 } },
       { id: 't9', name: '全知之眼的支配者', level: 9, color: 'gold', anim: 'holy', textColor: 'text-[#9400D3]', threshold: { percent: 0.9, random: 9, random_perfect: 1, mock: 9, mock_perfect: 1 } },
-      { id: 't10', name: '零死角的真理之門', level: 10, color: 'cosmic', anim: 'aurora', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500', threshold: { percent: 1.0, random: 10, random_perfect: 2, mock: 10, mock_perfect: 2 } },
+      { id: 't10', name: '零死角的真理之源', level: 10, color: 'cosmic', anim: 'aurora', textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500', threshold: { percent: 1.0, random: 10, random_perfect: 2, mock: 10, mock_perfect: 2 } },
     ];
 
     const PREFIXES = { tf_full: '是非題全題庫', mc_full: '選擇題全題庫', tf_random: '是非題隨堂測驗', mc_random: '選擇題隨堂測驗', mock: '模擬測驗' };
@@ -148,13 +148,14 @@
       return newArr;
     };
 
+    // 【防禦性設計】：加上 || 0 確保就算資料庫抓不到該欄位，也能當作 0 來計算，避免出現 NaN
     const checkEligibility = (stats, prefixKey, threshold, tfTotal, mcTotal) => {
       if (!stats) return false;
-      if (prefixKey === 'tf_full') return stats.tf_full_answered >= Math.ceil(threshold.percent * tfTotal);
-      if (prefixKey === 'mc_full') return stats.mc_full_answered >= Math.ceil(threshold.percent * mcTotal);
-      if (prefixKey === 'tf_random') return (stats.tf_random_completed >= threshold.random) && (threshold.random_perfect ? stats.tf_random_perfect >= threshold.random_perfect : true);
-      if (prefixKey === 'mc_random') return (stats.mc_random_completed >= threshold.random) && (threshold.random_perfect ? stats.mc_random_perfect >= threshold.random_perfect : true);
-      if (prefixKey === 'mock') return (stats.mock_completed >= threshold.mock) && (threshold.mock_perfect ? stats.mock_perfect >= threshold.mock_perfect : true);
+      if (prefixKey === 'tf_full') return (stats.tf_full_answered || 0) >= Math.ceil(threshold.percent * tfTotal);
+      if (prefixKey === 'mc_full') return (stats.mc_full_answered || 0) >= Math.ceil(threshold.percent * mcTotal);
+      if (prefixKey === 'tf_random') return ((stats.tf_random_completed || 0) >= threshold.random) && (threshold.random_perfect ? (stats.tf_random_perfect || 0) >= threshold.random_perfect : true);
+      if (prefixKey === 'mc_random') return ((stats.mc_random_completed || 0) >= threshold.random) && (threshold.random_perfect ? (stats.mc_random_perfect || 0) >= threshold.random_perfect : true);
+      if (prefixKey === 'mock') return ((stats.mock_completed || 0) >= threshold.mock) && (threshold.mock_perfect ? (stats.mock_perfect || 0) >= threshold.mock_perfect : true);
       return false;
     };
 
@@ -181,24 +182,19 @@
 
       return (
         <div className={containerClass} style={{ width: size, height: size }}>
-          {/* 動態特效層 */}
           {!isGrayscale && (
             <>
-              {/* Lv.5 - Lv.6 科技藍齒輪旋轉/沙漏感 */}
               {(anim === 'gear' || anim === 'hourglass') && (
                  <div className="absolute inset-[-10px] rounded-full border-[3px] border-dashed border-[#87CEFA] opacity-60 pointer-events-none" style={{ animation: anim === 'gear' ? 'spin-slow 6s linear infinite' : 'spin-reverse-slow 8s ease-in-out infinite' }}></div>
               )}
-              {/* Lv.7 - Lv.9 神聖紫金發光脈衝 */}
               {anim === 'holy' && (
                  <div className="absolute inset-[-15px] rounded-full border-2 border-[#9400D3] shadow-[0_0_20px_#FFD700] pointer-events-none" style={{ animation: 'pulse-glow 3s infinite' }}></div>
               )}
-              {/* Lv.10 宇宙極光全屏感 (縮小版) */}
               {anim === 'aurora' && (
                  <div className="absolute inset-[-30px] rounded-full opacity-70 blur-xl pointer-events-none z-0" style={{ background: 'conic-gradient(from 0deg, #ff00ff, #00ffff, #ffff00, #ff00ff)', animation: 'spin-slow 5s linear infinite' }}></div>
               )}
             </>
           )}
-          
           <div className={imgClass} style={{ width: '100%', height: '100%', backgroundImage: `url(${imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
         </div>
       );
@@ -213,7 +209,6 @@
 
       return (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 backdrop-blur-md overflow-hidden">
-          {/* 滿級專屬特效 */}
           {isMaxLevel && <div className="cosmic-screen-glow"></div>}
 
           <div className="bg-white rounded-[3rem] p-10 px-12 text-center shadow-[0_0_80px_rgba(255,255,255,0.2)] animate-pop-in relative z-10 max-w-sm mx-4 mt-16 border border-gray-100">
@@ -249,11 +244,13 @@
       const [tfBank, setTfBank] = useState([]);
       const [mcBank, setMcBank] = useState([]);
       
-      const [userProgress, setUserProgress] = useState({ tf_full: 0, mc_full: 0 });
-      const [userStats, setUserStats] = useState({
+      const defaultStats = {
         tf_full_answered: 0, mc_full_answered: 0, tf_random_completed: 0, tf_random_perfect: 0,
         mc_random_completed: 0, mc_random_perfect: 0, mock_completed: 0, mock_perfect: 0
-      });
+      };
+
+      const [userProgress, setUserProgress] = useState({ tf_full: 0, mc_full: 0 });
+      const [userStats, setUserStats] = useState(defaultStats);
       const [mistakes, setMistakes] = useState([]);
       const [claimedAchievements, setClaimedAchievements] = useState([]);
 
@@ -336,12 +333,11 @@
             if (snap.exists()) {
               const data = snap.data();
               setUserProgress(data.progress || { tf_full: 0, mc_full: 0 });
-              setUserStats(data.stats || {
-                tf_full_answered: 0, mc_full_answered: 0, tf_random_completed: 0, tf_random_perfect: 0,
-                mc_random_completed: 0, mc_random_perfect: 0, mock_completed: 0, mock_perfect: 0
-              });
+              // 【防禦性設計】：將舊資料與預設值合併，填補空缺的欄位
+              setUserStats({ ...defaultStats, ...(data.stats || {}) });
             } else {
-              await setDoc(userDocRef, { progress: { tf_full: 0, mc_full: 0 }, stats: {} }, { merge: true });
+              await setDoc(userDocRef, { progress: { tf_full: 0, mc_full: 0 }, stats: defaultStats }, { merge: true });
+              setUserStats(defaultStats);
             }
           } catch (err) {
             console.error("Firestore read error:", err);
@@ -608,7 +604,7 @@
         if (isFullMode) {
           saveProgress(mode, currentIndex + 1);
           const statKey = mode === 'tf_full' ? 'tf_full_answered' : 'mc_full_answered';
-          updateStats({ [statKey]: userStats[statKey] + 1 });
+          updateStats({ [statKey]: (userStats[statKey] || 0) + 1 });
         }
       };
 
@@ -622,7 +618,7 @@
            handleMistakeUpdate(q, isCorrect); return { isCorrect, selectedAnswer: ansObj.selectedAnswer };
         });
         setUserAnswers(evaluatedAnswers); setScore(currentScore);
-        updateStats({ mock_completed: userStats.mock_completed + 1, ...(currentScore === 100 && {mock_perfect: userStats.mock_perfect + 1}) });
+        updateStats({ mock_completed: (userStats.mock_completed || 0) + 1, ...(currentScore === 100 && {mock_perfect: (userStats.mock_perfect || 0) + 1}) });
         setIsFinished(true);
       };
 
@@ -652,11 +648,12 @@
         setCurrentIndex(targetIndex); setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
       };
 
+      // 【防禦性設計】：使用 || 0 確保就算資料庫抓不到該欄位，也能當作 0 來 +1，避免出錯
       const finishQuiz = () => {
         setIsFinished(true);
-        if (mode === 'tf_random') updateStats({ tf_random_completed: userStats.tf_random_completed + 1, ...(score === 20 && {tf_random_perfect: userStats.tf_random_perfect + 1}) });
-        else if (mode === 'mc_random') updateStats({ mc_random_completed: userStats.mc_random_completed + 1, ...(score === 20 && {mc_random_perfect: userStats.mc_random_perfect + 1}) });
-        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length; updateStats({ mock_completed: userStats.mock_completed + 1, ...(finalScore === 100 && {mock_perfect: userStats.mock_perfect + 1}) }); }
+        if (mode === 'tf_random') updateStats({ tf_random_completed: (userStats.tf_random_completed || 0) + 1, ...(score === 20 && {tf_random_perfect: (userStats.tf_random_perfect || 0) + 1}) });
+        else if (mode === 'mc_random') updateStats({ mc_random_completed: (userStats.mc_random_completed || 0) + 1, ...(score === 20 && {mc_random_perfect: (userStats.mc_random_perfect || 0) + 1}) });
+        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length; updateStats({ mock_completed: (userStats.mock_completed || 0) + 1, ...(finalScore === 100 && {mock_perfect: (userStats.mock_perfect || 0) + 1}) }); }
       };
 
       const formatTime = (seconds) => { const m = Math.floor(seconds / 60); const s = seconds % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; };
