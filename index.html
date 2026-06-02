@@ -46,7 +46,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz"; // 更改為採購法專用 ID
+    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz"; 
 
     // ==========================================
     // 2. 顏色與成就設定檔
@@ -161,7 +161,6 @@
       useEffect(() => {
         const fetchQuestions = async () => {
           try {
-            // 替換成新的採購法 Google Sheet CSV API 網址
             const tfRes = await fetch('https://docs.google.com/spreadsheets/d/1iJGGtpb7u1QCpuESmFNjyhR56ZJlHUST1fmLk3gVC6w/gviz/tq?tqx=out:csv');
             const mcRes = await fetch('https://docs.google.com/spreadsheets/d/1j1NrbzBKsrLHzNgVqpkC9abe3a7NjDwe89X-XFlOtZU/gviz/tq?tqx=out:csv');
             
@@ -179,10 +178,13 @@
 
             const formattedMc = parsedMc.map((row, index) => {
               const qText = row[1] || '';
-              const cleanAnswer = (row[3] || '').replace(/[, ]/g, '').toUpperCase();
+              // 容錯處理：把可能的括號 ( ) 也過濾掉，確保比對時只有純數字
+              const cleanAnswer = (row[3] || '').replace(/[, ()\s]/g, '').toUpperCase();
               const isMultiple = cleanAnswer.length > 1 || qText.includes('(多選)');
               const optionsRaw = row[2] || '';
-              const parsedOptions = optionsRaw.split(/[A-E][.．、]\s*/).filter(o => o.trim() !== '').map(o => o.trim());
+              
+              // 修改正則表達式，支援 (1) (2) (3) 或 1. 2. 3. 這種格式
+              const parsedOptions = optionsRaw.split(/(?:\(\d+\)|\d+[.．、])\s*/).filter(o => o.trim() !== '').map(o => o.trim());
 
               return {
                 id: `mc_${index}`, type: 'mc', isMultiple, originalIndex: index,
@@ -283,7 +285,7 @@
           } else {
             await setDoc(mistakeRef, {
               question: question.question, type: question.type, 
-              isMultiple: question.isMultiple || false, // 確保多選狀態被儲存
+              isMultiple: question.isMultiple || false,
               answer: question.answer,
               options: question.options || null, explanation: question.explanation,
               streak: 0, lastFailed: new Date().toISOString()
@@ -312,7 +314,6 @@
           questions = [...shuffleArray(tfBank).slice(0, 50), ...shuffleArray(mcBank).slice(0, 50)];
           timeLimit = 50 * 60;
         } else if (mode === 'mistakes') {
-          // 處理錯題：確保 isMultiple 屬性存在 (舊資料自動判斷)
           questions = shuffleArray(mistakes).map(m => ({
             ...m,
             isMultiple: m.isMultiple !== undefined ? m.isMultiple : (m.type === 'mc' && m.answer.length > 1)
@@ -582,7 +583,7 @@
         if (isBookmarked) await deleteDoc(mistakeRef);
         else await setDoc(mistakeRef, { 
             question: currentQ.question, type: currentQ.type, 
-            isMultiple: currentQ.isMultiple || false, // 確保書籤也儲存多選狀態
+            isMultiple: currentQ.isMultiple || false,
             answer: currentQ.answer, options: currentQ.options || null, explanation: currentQ.explanation, streak: 0, bookmarked: true, lastFailed: new Date().toISOString() 
         }, { merge: true });
       };
@@ -807,7 +808,9 @@
                 </div>
               ) : (
                 currentQ.options.map((opt, idx) => {
-                  const optionLabel = String.fromCharCode(65 + idx);
+                  // 將選項從字母 (A, B...) 改成數字 (1, 2...)
+                  const optionLabel = String(idx + 1);
+                  
                   const isSelected = currentQ.isMultiple ? Array.isArray(selectedAnswer) && selectedAnswer.includes(optionLabel) : selectedAnswer === optionLabel;
                   const isCorrectOpt = (currentQ.isMultiple ? currentQ.answer.split('') : [currentQ.answer]).includes(optionLabel);
                   let btnClass = 'bg-white border-gray-200 text-gray-700 hover:border-gray-300';
@@ -815,7 +818,7 @@
                   else if (isAnswered && isCorrectOpt && mode !== 'mock') btnClass = 'bg-green-50 border-green-500 text-green-700 border-dashed opacity-70';
                   return (
                     <button key={idx} onClick={() => handleSelect(optionLabel)} disabled={isAnswered && !isFullMode && mode !== 'mock'} className={`flex items-center text-left p-4 md:p-5 rounded-2xl border-2 transition-all ${btnClass}`}>
-                      <span className={`w-8 h-8 flex items-center justify-center mr-4 shrink-0 font-bold ${currentQ.isMultiple ? 'rounded-md' : 'rounded-full'} ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>{optionLabel}</span><span className="text-lg">{opt}</span>
+                      <span className={`w-8 h-8 flex items-center justify-center mr-4 shrink-0 font-bold ${currentQ.isMultiple ? 'rounded-md' : 'rounded-full'} ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>({optionLabel})</span><span className="text-lg">{opt}</span>
                     </button>
                   );
                 })
