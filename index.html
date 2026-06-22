@@ -6,8 +6,15 @@
   <title>採購法考古題練習系統</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
+      }
+    }
+  </script>
 
   <style>
     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -37,7 +44,7 @@
     .theme-silver { border-color: #B0C4DE; box-shadow: 0 0 20px rgba(0, 191, 255, 0.6); }
     .theme-gold { border-color: #FFD700; box-shadow: 0 0 25px rgba(148, 0, 211, 0.8); }
     .theme-cosmic { 
-      border: 4px solid transparent; 
+      border: 4px solid transparent;
       background-clip: padding-box;
       animation: cosmic-aurora 4s linear infinite; 
     }
@@ -66,7 +73,6 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js';
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
     import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
-    
     import { BookOpen, CheckSquare, Clock, Trophy, Home, ChevronLeft, ChevronRight, Bookmark, AlertCircle, Play, X, Star, Save, LayoutGrid } from 'https://esm.sh/lucide-react@0.344.0';
 
     const fallbackConfig = {
@@ -77,12 +83,12 @@
       messagingSenderId: "613549084178",
       appId: "1:613549084178:web:5df7a4036aa586a66a92cb"
     };
-    
+
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz"; 
+    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz";
 
     const COLORS = { bg: '#F4F1EB', cardBg: '#FFFFFF', primary: '#7B929A', secondary: '#9CAE96', accent: '#C7A38B', textMain: '#4A4A4A', textMuted: '#8A8A8A', border: '#E8E6E1' };
 
@@ -168,7 +174,7 @@
       
       let containerClass = `relative flex justify-center items-center rounded-full `;
       let imgClass = `rounded-full object-cover transition-all duration-700 z-10 border-4 border-solid bg-white `;
-      
+
       if (isGrayscale) {
         imgClass += ` grayscale brightness-50 border-gray-400 `;
       } else {
@@ -365,6 +371,7 @@
         if (!user) return;
         const updatedStats = { ...userStats, ...newStatsUpdates };
         const newlyUnlocked = [];
+
         Object.keys(PREFIXES).forEach(category => {
           ACHIEVEMENT_TIERS.forEach(tier => {
             const wasEligible = checkEligibility(userStats, category, tier.threshold, tfBank.length, mcBank.length);
@@ -578,8 +585,10 @@
         } else newSelected = ans;
         
         setSelectedAnswer(newSelected);
+
         if (mode === 'mock') {
-          const newAnswers = [...userAnswers]; newAnswers[currentIndex] = { selectedAnswer: newSelected };
+          const newAnswers = [...userAnswers];
+          newAnswers[currentIndex] = { selectedAnswer: newSelected };
           setUserAnswers(newAnswers); setIsAnswered(true);
         } else {
           if (currentQ.type === 'tf' || !currentQ.isMultiple) processSubmit(newSelected);
@@ -593,10 +602,12 @@
 
         setIsAnswered(true);
         let isCorrect = false;
+
         if (currentQ.isMultiple) isCorrect = [...evalTarget].sort().join('') === currentQ.answer.split('').sort().join('');
         else isCorrect = evalTarget === currentQ.answer;
         
-        const newAnswers = [...userAnswers]; newAnswers[currentIndex] = { isCorrect, selectedAnswer: evalTarget };
+        const newAnswers = [...userAnswers];
+        newAnswers[currentIndex] = { isCorrect, selectedAnswer: evalTarget };
         setUserAnswers(newAnswers);
         if (isCorrect) setScore(s => s + 1);
         handleMistakeUpdate(currentQ, isCorrect);
@@ -626,12 +637,15 @@
         if (mode === 'mock' && mockPart === 1 && currentIndex === 49) {
           showModal("進入第二部分", "確定要結束是非題部分，進入選擇題嗎？進入後將無法修改是非題答案。", "confirm", () => {
               setMockPart(2); setCurrentIndex(50); setTimeLeft(timeLimit); setSelectedAnswer(userAnswers[50]?.selectedAnswer || null); setIsAnswered(!!userAnswers[50]); setShowExplanation(false);
-          }); return;
+          });
+          return;
         }
         if (currentIndex < questions.length - 1) {
-          setCurrentIndex(c => c + 1); setSelectedAnswer(userAnswers[currentIndex + 1]?.selectedAnswer || null); setIsAnswered(!!userAnswers[currentIndex + 1]); setShowExplanation(false);
+          setCurrentIndex(c => c + 1);
+          setSelectedAnswer(userAnswers[currentIndex + 1]?.selectedAnswer || null); setIsAnswered(!!userAnswers[currentIndex + 1]); setShowExplanation(false);
         } else {
-          if (mode === 'mock') showModal("確認交卷", "確定要交卷嗎？未作答的題目將以 0 分計算。", "confirm", () => evaluateMockExam()); else finishQuiz();
+          if (mode === 'mock') showModal("確認交卷", "確定要交卷嗎？未作答的題目將以 0 分計算。", "confirm", () => evaluateMockExam());
+          else finishQuiz();
         }
       };
 
@@ -645,7 +659,8 @@
           if (mockPart === 1 && targetIndex >= 50) { showModal("提示", "這部分是選擇題，請先完成是非題部分！"); return; }
           if (mockPart === 2 && targetIndex < 50) { showModal("提示", "是非題部分已結束，目前無法返回修改。"); return; }
         }
-        setCurrentIndex(targetIndex); setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
+        setCurrentIndex(targetIndex);
+        setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
       };
 
       // 【新增】鍵盤快捷鍵監聽
@@ -687,15 +702,20 @@
         setIsFinished(true);
         if (mode === 'tf_random') updateStats({ tf_random_completed: (userStats.tf_random_completed || 0) + 1, ...(score === 20 && {tf_random_perfect: (userStats.tf_random_perfect || 0) + 1}) });
         else if (mode === 'mc_random') updateStats({ mc_random_completed: (userStats.mc_random_completed || 0) + 1, ...(score === 20 && {mc_random_perfect: (userStats.mc_random_perfect || 0) + 1}) });
-        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length; updateStats({ mock_completed: (userStats.mock_completed || 0) + 1, ...(finalScore === 100 && {mock_perfect: (userStats.mock_perfect || 0) + 1}) }); }
+        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length;
+        updateStats({ mock_completed: (userStats.mock_completed || 0) + 1, ...(finalScore === 100 && {mock_perfect: (userStats.mock_perfect || 0) + 1}) });
+        }
       };
 
-      const formatTime = (seconds) => { const m = Math.floor(seconds / 60); const s = seconds % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; };
+      const formatTime = (seconds) => { const m = Math.floor(seconds / 60);
+      const s = seconds % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; };
 
       const renderNavButton = (idx) => {
-        const isAnsweredLocal = !!userAnswers[idx]; const isCurrent = idx === currentIndex;
+        const isAnsweredLocal = !!userAnswers[idx];
+        const isCurrent = idx === currentIndex;
         let isDisabled = (mode === 'mock' && ((mockPart === 1 && idx >= 50) || (mockPart === 2 && idx < 50)));
         const displayNum = mode === 'mock' ? (idx < 50 ? idx + 1 : idx - 49) : idx + 1;
+
         return (
           <button key={idx} onClick={() => jumpToQuestion(idx)} disabled={isDisabled} className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center font-bold text-sm transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-100 text-gray-400' : isCurrent ? 'ring-4 ring-offset-2 scale-110 z-10' : isAnsweredLocal ? 'hover:opacity-80' : 'bg-white shadow-sm border text-gray-500 hover:bg-gray-50'}`} style={{ backgroundColor: isAnsweredLocal && !isDisabled ? '#9CAE96' : undefined, color: isAnsweredLocal && !isDisabled ? 'white' : undefined, '--tw-ring-color': isCurrent ? '#C7A38B' : undefined }}>{displayNum}</button>
         );
@@ -778,13 +798,17 @@
                   ))}
                 </div>
               ) : (
-                currentQ.options.map((opt, idx) => {
+                 currentQ.options.map((opt, idx) => {
                   const optionLabel = String(idx + 1);
                   const isSelected = currentQ.isMultiple ? Array.isArray(selectedAnswer) && selectedAnswer.includes(optionLabel) : selectedAnswer === optionLabel;
                   const isCorrectOpt = (currentQ.isMultiple ? currentQ.answer.split('') : [currentQ.answer]).includes(optionLabel);
                   let btnClass = 'bg-white border-gray-200 text-gray-700 hover:border-gray-300';
-                  if (isSelected) { if (mode === 'mock') btnClass = 'bg-blue-50 border-blue-400 text-blue-700'; else if (!isAnswered) btnClass = 'bg-blue-50 border-blue-400 text-blue-700'; else if (isCorrectOpt) btnClass = 'bg-green-50 border-green-500 text-green-700 font-bold'; else btnClass = 'bg-red-50 border-red-500 text-red-700'; } 
+
+                  if (isSelected) { if (mode === 'mock') btnClass = 'bg-blue-50 border-blue-400 text-blue-700';
+                  else if (!isAnswered) btnClass = 'bg-blue-50 border-blue-400 text-blue-700'; else if (isCorrectOpt) btnClass = 'bg-green-50 border-green-500 text-green-700 font-bold';
+                  else btnClass = 'bg-red-50 border-red-500 text-red-700'; } 
                   else if (isAnswered && isCorrectOpt && mode !== 'mock') btnClass = 'bg-green-50 border-green-500 text-green-700 border-dashed opacity-70';
+
                   return (
                     <button key={idx} onClick={() => handleSelect(optionLabel)} disabled={isAnswered && !isFullMode && mode !== 'mock'} className={`flex items-center text-left p-4 md:p-5 rounded-2xl border-2 transition-all ${btnClass}`}>
                       <span className={`w-8 h-8 flex items-center justify-center mr-4 shrink-0 font-bold ${currentQ.isMultiple ? 'rounded-md' : 'rounded-full'} ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>({optionLabel})</span><span className="text-lg">{opt}</span>
@@ -829,7 +853,7 @@
           <div className="space-y-12">
             {Object.keys(PREFIXES).map(category => (
               <div key={category} className="bg-white rounded-[3rem] p-8 shadow-sm border border-[#E8E6E1]">
-                <h3 className="text-xl font-bold mb-8 flex items-center gap-2 border-b pb-4 text-[#7B929A]"><Trophy size={20} /> {PREFIXES[category]}</h3>
+                 <h3 className="text-xl font-bold mb-8 flex items-center gap-2 border-b pb-4 text-[#7B929A]"><Trophy size={20} /> {PREFIXES[category]}</h3>
                 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-y-10 gap-x-4">
                   {ACHIEVEMENT_TIERS.map(tier => {
@@ -841,7 +865,8 @@
                     const handleTrophyClick = () => {
                       if (isClaimable) onClaim(achieveId, category, tier);
                       else if (!isClaimed) {
-                        let reqText = ""; const th = tier.threshold; const prefix = PREFIXES[category];
+                        let reqText = "";
+                        const th = tier.threshold; const prefix = PREFIXES[category];
                         if (category.includes('full')) reqText = `在「${prefix}」中，完成總題數的 ${Math.round(th.percent * 100)}% (約 ${Math.ceil(th.percent * (category === 'tf_full' ? tfTotal : mcTotal))} 題)。`;
                         else if (category.includes('random')) reqText = th.random_perfect ? `在「${prefix}」中，完成 ${th.random} 次以上測驗，且獲得滿分 ${th.random_perfect} 次。` : `在「${prefix}」中，完成 ${th.random} 次測驗。`;
                         else if (category === 'mock') reqText = th.mock_perfect ? `在「全真模擬測驗」中，完成 ${th.mock} 次以上測驗，且獲得滿分 ${th.mock_perfect} 次。` : `完成 ${th.mock} 次全真模擬測驗。`;
@@ -878,6 +903,7 @@
         </div>
       );
     }
+
     const root = createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
