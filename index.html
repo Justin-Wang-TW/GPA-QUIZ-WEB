@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>採購法考古題練習系統</title>
   
+  <!-- 避免瀏覽器顯示 favicon.ico 404 錯誤 -->
   <link rel="icon" href="data:,">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- 設定 Import Map，解決瀏覽器找不到 react/jsx-runtime 的問題 -->
   <script type="importmap">
     {
       "imports": {
@@ -384,7 +386,6 @@
         return () => { unsubMistakes(); unsubAchievements(); };
       }, [activeUid]);
 
-      // 【新增/修改】處理同步碼並自動重新整理
       const handleSyncSubmit = async () => {
         const rawCode = syncInput.trim();
         if (!rawCode) {
@@ -411,7 +412,6 @@
             const targetUid = codeSnap.data().uid;
             if(targetUid) {
                localStorage.setItem('procurement_sync_code', code);
-               // 第四個參數傳入 callback，使用者按下「確定」後執行重新整理
                showModal('同步成功', '已成功尋獲您的進度資料！\n\n按下「確定」後，系統將自動重新載入網頁以套用最新進度。', 'alert', () => {
                    window.location.reload();
                });
@@ -533,13 +533,19 @@
             <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm">
               <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full mx-4 shadow-2xl">
                  <h3 className="text-xl font-bold mb-4 text-[#2D3748]">跨裝置同步進度</h3>
-                 <p className="text-[#718096] mb-6 text-sm">您目前的同步碼為（可自行修改以便記憶）：</p>
+                 {/* 【修改】防撞號強烈提示 */}
+                 <div className="bg-orange-50 border-l-4 border-orange-400 p-3 mb-5 rounded-r-lg">
+                   <p className="text-orange-700 text-sm leading-relaxed">
+                     ⚠️ <b>警告：</b>請勿使用過於簡單的代碼（如 1234、aa）。強烈建議使用<span className="font-bold text-red-500">「您的手機號碼 + 英文組合」</span>作為同步碼，以免與他人撞號，導致進度互相覆蓋！
+                   </p>
+                 </div>
+                 <p className="text-[#718096] mb-3 text-sm font-medium">您目前的同步碼為：</p>
                  <input 
                    type="text" 
                    value={syncInput} 
                    onChange={(e) => setSyncInput(e.target.value)}
                    placeholder="輸入自訂同步碼" 
-                   className="w-full border-2 border-black rounded-[14px] px-4 py-3 mb-8 text-center font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#9CAE96] focus:border-transparent"
+                   className="w-full border-2 border-gray-300 rounded-[14px] px-4 py-3 mb-8 text-center font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#9CAE96] focus:border-transparent"
                  />
                  <div className="flex justify-center gap-6 items-center">
                    <button onClick={() => setShowSyncModal(false)} className="text-[#718096] hover:text-gray-800 font-medium px-4">取消</button>
