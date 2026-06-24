@@ -6,15 +6,8 @@
   <title>採購法考古題練習系統</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
-      }
-    }
-  </script>
 
   <style>
     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -44,7 +37,7 @@
     .theme-silver { border-color: #B0C4DE; box-shadow: 0 0 20px rgba(0, 191, 255, 0.6); }
     .theme-gold { border-color: #FFD700; box-shadow: 0 0 25px rgba(148, 0, 211, 0.8); }
     .theme-cosmic { 
-      border: 4px solid transparent;
+      border: 4px solid transparent; 
       background-clip: padding-box;
       animation: cosmic-aurora 4s linear infinite; 
     }
@@ -73,7 +66,9 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js';
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
     import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
-    import { BookOpen, CheckSquare, Clock, Trophy, Home, ChevronLeft, ChevronRight, Bookmark, AlertCircle, Play, X, Star, Save, LayoutGrid } from 'https://esm.sh/lucide-react@0.344.0';
+    
+    // 【新增】引入 RefreshCw 圖示作為同步按鈕
+    import { BookOpen, CheckSquare, Clock, Trophy, Home, ChevronLeft, ChevronRight, Bookmark, AlertCircle, Play, X, Star, Save, LayoutGrid, RefreshCw } from 'https://esm.sh/lucide-react@0.344.0';
 
     const fallbackConfig = {
       apiKey: "AIzaSyCS9aa4aAL7Qw2rPQdnfx-zYgA575YllVw",
@@ -83,12 +78,12 @@
       messagingSenderId: "613549084178",
       appId: "1:613549084178:web:5df7a4036aa586a66a92cb"
     };
-
+    
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz";
+    const appId = typeof __app_id !== 'undefined' ? __app_id : "procurement-quiz"; 
 
     const COLORS = { bg: '#F4F1EB', cardBg: '#FFFFFF', primary: '#7B929A', secondary: '#9CAE96', accent: '#C7A38B', textMain: '#4A4A4A', textMuted: '#8A8A8A', border: '#E8E6E1' };
 
@@ -96,16 +91,16 @@
     // 🎨 設定 10 張女神圖片網址
     // ==========================================
     const BADGE_IMAGES = {
-      1: "https://lh3.googleusercontent.com/d/1Pc8y3Acr5SwZqlIhTmV9cZwrqK995pUr", // 初入遺跡的新兵
-      2: "https://lh3.googleusercontent.com/d/1HbR4jOdAGyBV25UDzR7NNuPvIVy_n8ci", // 塵封卷軸的閱讀者
-      3: "https://lh3.googleusercontent.com/d/1AmhWJk6a4DG9MK59JGJQbmxS-irXSoMB", // 真理碎片的掘金者
-      4: "https://lh3.googleusercontent.com/d/1glcR8q2oH6VNtp4xZiTaYEXGLZY7Exj5", // 遠古密碼的研究員
-      5: "https://lh3.googleusercontent.com/d/1EtDawKfQKhba7nD_TeTuTkPz-ewplV1L", // 迴避陷阱的破譯者
-      6: "https://lh3.googleusercontent.com/d/1VSWhwhg_hgp0NcOPzKLa2uePF5qwBE5S", // 時間倒流的魔術師
-      7: "https://lh3.googleusercontent.com/d/12oClesD0vpJpL_D-SppSVuVjQ3Xps8-U", // 考場神殿的守門員
-      8: "https://lh3.googleusercontent.com/d/1qEqWs-GXfsbq2wKMCpGPjxUebxQZr5Sz", // 亙古考場的月桂冠
-      9: "https://lh3.googleusercontent.com/d/1G8dgfm0dJ5p5oNFfVLFdffAJrXpUeAY7", // 全知之眼的支配者
-      10: "https://lh3.googleusercontent.com/d/1-qXhxAOy-hT8ejwbb0zy9AmOuBolPmlN",// 零死角的真理之源
+      1: "https://lh3.googleusercontent.com/d/1Pc8y3Acr5SwZqlIhTmV9cZwrqK995pUr", 
+      2: "https://lh3.googleusercontent.com/d/1HbR4jOdAGyBV25UDzR7NNuPvIVy_n8ci", 
+      3: "https://lh3.googleusercontent.com/d/1AmhWJk6a4DG9MK59JGJQbmxS-irXSoMB", 
+      4: "https://lh3.googleusercontent.com/d/1glcR8q2oH6VNtp4xZiTaYEXGLZY7Exj5", 
+      5: "https://lh3.googleusercontent.com/d/1EtDawKfQKhba7nD_TeTuTkPz-ewplV1L", 
+      6: "https://lh3.googleusercontent.com/d/1VSWhwhg_hgp0NcOPzKLa2uePF5qwBE5S", 
+      7: "https://lh3.googleusercontent.com/d/12oClesD0vpJpL_D-SppSVuVjQ3Xps8-U", 
+      8: "https://lh3.googleusercontent.com/d/1qEqWs-GXfsbq2wKMCpGPjxUebxQZr5Sz", 
+      9: "https://lh3.googleusercontent.com/d/1G8dgfm0dJ5p5oNFfVLFdffAJrXpUeAY7", 
+      10: "https://lh3.googleusercontent.com/d/1-qXhxAOy-hT8ejwbb0zy9AmOuBolPmlN",
     };
 
     const ACHIEVEMENT_TIERS = [
@@ -154,7 +149,6 @@
       return newArr;
     };
 
-    // 【防禦性設計】：加上 || 0 確保就算資料庫抓不到該欄位，也能當作 0 來計算，避免出現 NaN
     const checkEligibility = (stats, prefixKey, threshold, tfTotal, mcTotal) => {
       if (!stats) return false;
       if (prefixKey === 'tf_full') return (stats.tf_full_answered || 0) >= Math.ceil(threshold.percent * tfTotal);
@@ -165,16 +159,13 @@
       return false;
     };
 
-    // ==========================================
-    // 女神徽章元件
-    // ==========================================
     function GoddessBadge({ level, size = 80, isGrayscale = false, tierInfo }) {
       const imageUrl = BADGE_IMAGES[level];
       const { color, anim } = tierInfo;
       
       let containerClass = `relative flex justify-center items-center rounded-full `;
       let imgClass = `rounded-full object-cover transition-all duration-700 z-10 border-4 border-solid bg-white `;
-
+      
       if (isGrayscale) {
         imgClass += ` grayscale brightness-50 border-gray-400 `;
       } else {
@@ -206,9 +197,6 @@
       );
     }
 
-    // ==========================================
-    // 結算/解鎖畫面特效
-    // ==========================================
     function CelebrationOverlay({ unlock, onClose }) {
       const { category, tier } = unlock;
       const isMaxLevel = tier.level === 10;
@@ -243,9 +231,15 @@
     // ==========================================
     function App() {
       const [user, setUser] = useState(null);
+      // 【新增】綁定進度用的 activeUid (允許切換)
+      const [activeUid, setActiveUid] = useState(null);
       const [loading, setLoading] = useState(true);
       const [currentView, setCurrentView] = useState('home');
       const [modalConfig, setModalConfig] = useState(null);
+      
+      // 【新增】同步進度狀態
+      const [showSyncModal, setShowSyncModal] = useState(false);
+      const [syncInput, setSyncInput] = useState('');
       
       const [tfBank, setTfBank] = useState([]);
       const [mcBank, setMcBank] = useState([]);
@@ -263,6 +257,7 @@
       const [quizConfig, setQuizConfig] = useState(null);
       const [achievementQueue, setAchievementQueue] = useState([]);
 
+      // 驗證與本機端同步碼讀取
       useEffect(() => {
         const initAuth = async () => {
           try {
@@ -278,9 +273,32 @@
         };
         initAuth();
 
-        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
           setUser(currentUser);
-          if (!currentUser) setLoading(false);
+          if (currentUser) {
+            // 【新增】檢查 LocalStorage 中是否有先前的同步碼
+            const savedCode = localStorage.getItem('procurement_sync_code');
+            if (savedCode) {
+              try {
+                const codeRef = doc(db, 'artifacts', appId, 'syncCodes', savedCode);
+                const codeSnap = await getDoc(codeRef);
+                if (codeSnap.exists()) {
+                  setActiveUid(codeSnap.data().uid);
+                  setSyncInput(savedCode);
+                } else {
+                  // 同步碼失效，退回預設匿名 UID
+                  setActiveUid(currentUser.uid);
+                  localStorage.removeItem('procurement_sync_code');
+                }
+              } catch (e) {
+                setActiveUid(currentUser.uid);
+              }
+            } else {
+              setActiveUid(currentUser.uid);
+            }
+          } else {
+            setLoading(false);
+          }
         });
         return () => unsubscribeAuth();
       }, []);
@@ -325,13 +343,14 @@
         fetchQuestions();
       }, []);
 
+      // 【更新】將所有依賴 user 的地方改為 activeUid
       useEffect(() => {
-        if (!user) return;
+        if (!activeUid) return;
         setLoading(true);
 
-        const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data');
-        const mistakesColRef = collection(db, 'artifacts', appId, 'users', user.uid, 'mistakes');
-        const achievementsColRef = collection(db, 'artifacts', appId, 'users', user.uid, 'achievements');
+        const userDocRef = doc(db, 'artifacts', appId, 'users', activeUid, 'profile', 'data');
+        const mistakesColRef = collection(db, 'artifacts', appId, 'users', activeUid, 'mistakes');
+        const achievementsColRef = collection(db, 'artifacts', appId, 'users', activeUid, 'achievements');
 
         const initProfile = async () => {
           try {
@@ -339,7 +358,6 @@
             if (snap.exists()) {
               const data = snap.data();
               setUserProgress(data.progress || { tf_full: 0, mc_full: 0 });
-              // 【防禦性設計】：將舊資料與預設值合併，填補空缺的欄位
               setUserStats({ ...defaultStats, ...(data.stats || {}) });
             } else {
               await setDoc(userDocRef, { progress: { tf_full: 0, mc_full: 0 }, stats: defaultStats }, { merge: true });
@@ -365,13 +383,47 @@
         }, (err) => console.error("Achievements snapshot error:", err));
 
         return () => { unsubMistakes(); unsubAchievements(); };
-      }, [user]);
+      }, [activeUid]);
+
+      // 【新增】處理同步碼綁定邏輯
+      const handleSyncSubmit = async () => {
+        const code = syncInput.trim();
+        if (!code) {
+          showModal('提示', '請輸入同步碼！');
+          return;
+        }
+        if (!user || !activeUid) return;
+
+        setShowSyncModal(false); // 先關閉視窗，讓使用者知道系統正在處理
+        setLoading(true);
+        
+        try {
+          const codeRef = doc(db, 'artifacts', appId, 'syncCodes', code);
+          const codeSnap = await getDoc(codeRef);
+          
+          if (codeSnap.exists()) {
+            // 同步碼已存在 -> 讀取該同步碼對應的 UID，實現跨裝置繼承
+            const targetUid = codeSnap.data().uid;
+            setActiveUid(targetUid);
+            localStorage.setItem('procurement_sync_code', code);
+            showModal('同步成功', '已成功載入該同步碼的進度資料！');
+          } else {
+            // 同步碼不存在 -> 建立新綁定，將當前的 activeUid 與此同步碼綁定
+            await setDoc(codeRef, { uid: activeUid, createdAt: new Date().toISOString() });
+            localStorage.setItem('procurement_sync_code', code);
+            showModal('綁定成功', `已將您目前的進度綁定至同步碼「${code}」！\n請在其他裝置輸入此代碼來恢復進度。`);
+          }
+        } catch (err) {
+          console.error(err);
+          showModal('錯誤', '同步失敗，請檢查網路連線或稍後再試。');
+        }
+        setLoading(false);
+      };
 
       const updateStats = async (newStatsUpdates) => {
-        if (!user) return;
+        if (!activeUid) return;
         const updatedStats = { ...userStats, ...newStatsUpdates };
         const newlyUnlocked = [];
-
         Object.keys(PREFIXES).forEach(category => {
           ACHIEVEMENT_TIERS.forEach(tier => {
             const wasEligible = checkEligibility(userStats, category, tier.threshold, tfBank.length, mcBank.length);
@@ -382,21 +434,21 @@
 
         if (newlyUnlocked.length > 0) setAchievementQueue(prev => [...prev, ...newlyUnlocked]);
         setUserStats(updatedStats);
-        const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data');
+        const userDocRef = doc(db, 'artifacts', appId, 'users', activeUid, 'profile', 'data');
         try { await setDoc(userDocRef, { stats: updatedStats }, { merge: true }); } catch (e) { console.error(e); }
       };
 
       const saveProgress = async (mode, currentIndex) => {
-        if (!user) return;
-        const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data');
+        if (!activeUid) return;
+        const userDocRef = doc(db, 'artifacts', appId, 'users', activeUid, 'profile', 'data');
         const updatedProgress = { ...userProgress, [mode]: currentIndex };
         setUserProgress(updatedProgress);
         try { await setDoc(userDocRef, { progress: updatedProgress }, { merge: true }); } catch (e) { console.error(e); }
       };
 
       const handleMistakeUpdate = async (question, isCorrect) => {
-        if (!user) return;
-        const mistakeRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mistakes', question.id);
+        if (!activeUid) return;
+        const mistakeRef = doc(db, 'artifacts', appId, 'users', activeUid, 'mistakes', question.id);
         const existing = mistakes.find(m => m.id === question.id);
 
         try {
@@ -457,10 +509,35 @@
           <header className="px-6 py-4 flex justify-between items-center max-w-4xl mx-auto relative z-10">
             <h1 className="text-2xl font-bold tracking-wider text-gray-700">採購法考古題<span className="text-[#7B929A]">練習系統</span></h1>
             <div className="flex gap-4">
-              <button onClick={() => setCurrentView('home')} className="p-2 rounded-full hover:bg-black/5 transition-colors"><Home size={24} className="text-gray-700" /></button>
-              <button onClick={() => setCurrentView('achievements')} className="p-2 rounded-full hover:bg-black/5 transition-colors"><Trophy size={24} className="text-[#C7A38B]" /></button>
+              {/* 【新增】同步進度按鈕 */}
+              <button onClick={() => setShowSyncModal(true)} className="p-2 rounded-full hover:bg-black/5 transition-colors" title="跨裝置同步進度">
+                <RefreshCw size={24} className="text-[#7B929A]" />
+              </button>
+              <button onClick={() => setCurrentView('home')} className="p-2 rounded-full hover:bg-black/5 transition-colors" title="首頁"><Home size={24} className="text-gray-700" /></button>
+              <button onClick={() => setCurrentView('achievements')} className="p-2 rounded-full hover:bg-black/5 transition-colors relative" title="成就牆"><Trophy size={24} className="text-[#C7A38B]" /></button>
             </div>
           </header>
+
+          {/* 【新增】同步進度彈出視窗 */}
+          {showSyncModal && (
+            <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full mx-4 shadow-2xl">
+                 <h3 className="text-xl font-bold mb-4 text-[#2D3748]">跨裝置同步進度</h3>
+                 <p className="text-[#718096] mb-6 text-sm">您目前的同步碼為（可自行修改以便記憶）：</p>
+                 <input 
+                   type="text" 
+                   value={syncInput} 
+                   onChange={(e) => setSyncInput(e.target.value)}
+                   placeholder="輸入自訂同步碼" 
+                   className="w-full border-2 border-black rounded-[14px] px-4 py-3 mb-8 text-center font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#9CAE96] focus:border-transparent"
+                 />
+                 <div className="flex justify-center gap-6 items-center">
+                   <button onClick={() => setShowSyncModal(false)} className="text-[#718096] hover:text-gray-800 font-medium px-4">取消</button>
+                   <button onClick={handleSyncSubmit} className="px-6 py-2.5 rounded-[20px] font-bold text-white shadow-md hover:scale-105 transition-transform bg-[#9CAE96]">儲存並套用</button>
+                 </div>
+              </div>
+            </div>
+          )}
 
           {modalConfig && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -479,10 +556,10 @@
 
           <main className="max-w-5xl mx-auto px-4 relative z-0">
             {currentView === 'home' && <HomeView startQuiz={startQuiz} mistakeCount={mistakes.length} tfProgress={userProgress.tf_full} mcProgress={userProgress.mc_full} tfTotal={tfBank.length} mcTotal={mcBank.length} showModal={showModal} />}
-            {currentView === 'quiz' && quizConfig && <QuizEngine config={quizConfig} onExit={() => setCurrentView('home')} updateStats={updateStats} userStats={userStats} handleMistakeUpdate={handleMistakeUpdate} saveProgress={saveProgress} mistakes={mistakes} user={user} showModal={showModal} />}
+            {currentView === 'quiz' && quizConfig && <QuizEngine config={quizConfig} onExit={() => setCurrentView('home')} updateStats={updateStats} userStats={userStats} handleMistakeUpdate={handleMistakeUpdate} saveProgress={saveProgress} mistakes={mistakes} activeUid={activeUid} showModal={showModal} />}
             {currentView === 'achievements' && <AchievementWall stats={userStats} claimed={claimedAchievements} showModal={showModal} tfTotal={tfBank.length} mcTotal={mcBank.length} onClaim={async (id, category, tier) => {
-                  if(!user) return;
-                  await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'achievements', id), { claimedAt: new Date().toISOString() });
+                  if(!activeUid) return;
+                  await setDoc(doc(db, 'artifacts', appId, 'users', activeUid, 'achievements', id), { claimedAt: new Date().toISOString() });
                   setAchievementQueue(prev => [...prev, { category, tier, isClaiming: true }]);
                 }} />}
           </main>
@@ -523,7 +600,7 @@
       );
     }
 
-    function QuizEngine({ config, onExit, updateStats, userStats, handleMistakeUpdate, saveProgress, mistakes, user, showModal }) {
+    function QuizEngine({ config, onExit, updateStats, userStats, handleMistakeUpdate, saveProgress, mistakes, activeUid, showModal }) {
       const { mode, questions, timeLimit, startIndex } = config;
       const isFullMode = mode === 'tf_full' || mode === 'mc_full';
       
@@ -552,8 +629,8 @@
 
       const isBookmarked = mistakes.some(m => m.id === currentQ?.id);
       const toggleBookmark = async () => {
-        if (!user || !currentQ) return;
-        const mistakeRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mistakes', currentQ.id);
+        if (!activeUid || !currentQ) return;
+        const mistakeRef = doc(db, 'artifacts', appId, 'users', activeUid, 'mistakes', currentQ.id);
         if (isBookmarked) await deleteDoc(mistakeRef);
         else await setDoc(mistakeRef, { question: currentQ.question, type: currentQ.type, isMultiple: currentQ.isMultiple || false, answer: currentQ.answer, options: currentQ.options || null, explanation: currentQ.explanation, streak: 0, bookmarked: true, lastFailed: new Date().toISOString() }, { merge: true });
       };
@@ -585,10 +662,8 @@
         } else newSelected = ans;
         
         setSelectedAnswer(newSelected);
-
         if (mode === 'mock') {
-          const newAnswers = [...userAnswers];
-          newAnswers[currentIndex] = { selectedAnswer: newSelected };
+          const newAnswers = [...userAnswers]; newAnswers[currentIndex] = { selectedAnswer: newSelected };
           setUserAnswers(newAnswers); setIsAnswered(true);
         } else {
           if (currentQ.type === 'tf' || !currentQ.isMultiple) processSubmit(newSelected);
@@ -602,12 +677,10 @@
 
         setIsAnswered(true);
         let isCorrect = false;
-
         if (currentQ.isMultiple) isCorrect = [...evalTarget].sort().join('') === currentQ.answer.split('').sort().join('');
         else isCorrect = evalTarget === currentQ.answer;
         
-        const newAnswers = [...userAnswers];
-        newAnswers[currentIndex] = { isCorrect, selectedAnswer: evalTarget };
+        const newAnswers = [...userAnswers]; newAnswers[currentIndex] = { isCorrect, selectedAnswer: evalTarget };
         setUserAnswers(newAnswers);
         if (isCorrect) setScore(s => s + 1);
         handleMistakeUpdate(currentQ, isCorrect);
@@ -637,15 +710,12 @@
         if (mode === 'mock' && mockPart === 1 && currentIndex === 49) {
           showModal("進入第二部分", "確定要結束是非題部分，進入選擇題嗎？進入後將無法修改是非題答案。", "confirm", () => {
               setMockPart(2); setCurrentIndex(50); setTimeLeft(timeLimit); setSelectedAnswer(userAnswers[50]?.selectedAnswer || null); setIsAnswered(!!userAnswers[50]); setShowExplanation(false);
-          });
-          return;
+          }); return;
         }
         if (currentIndex < questions.length - 1) {
-          setCurrentIndex(c => c + 1);
-          setSelectedAnswer(userAnswers[currentIndex + 1]?.selectedAnswer || null); setIsAnswered(!!userAnswers[currentIndex + 1]); setShowExplanation(false);
+          setCurrentIndex(c => c + 1); setSelectedAnswer(userAnswers[currentIndex + 1]?.selectedAnswer || null); setIsAnswered(!!userAnswers[currentIndex + 1]); setShowExplanation(false);
         } else {
-          if (mode === 'mock') showModal("確認交卷", "確定要交卷嗎？未作答的題目將以 0 分計算。", "confirm", () => evaluateMockExam());
-          else finishQuiz();
+          if (mode === 'mock') showModal("確認交卷", "確定要交卷嗎？未作答的題目將以 0 分計算。", "confirm", () => evaluateMockExam()); else finishQuiz();
         }
       };
 
@@ -659,15 +729,12 @@
           if (mockPart === 1 && targetIndex >= 50) { showModal("提示", "這部分是選擇題，請先完成是非題部分！"); return; }
           if (mockPart === 2 && targetIndex < 50) { showModal("提示", "是非題部分已結束，目前無法返回修改。"); return; }
         }
-        setCurrentIndex(targetIndex);
-        setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
+        setCurrentIndex(targetIndex); setSelectedAnswer(userAnswers[targetIndex]?.selectedAnswer || null); setIsAnswered(!!userAnswers[targetIndex]); setShowExplanation(false); setIsMenuOpen(false);
       };
 
-      // 【新增】鍵盤快捷鍵監聽
       useEffect(() => {
         const handleKeyDown = (e) => {
-          // 若選單開啟，或有彈出視窗(Modal)存在時，停用快捷鍵
-          if (isMenuOpen || document.querySelector('.z-\\[100\\]')) return;
+          if (isMenuOpen || document.querySelector('.z-\\[100\\]') || document.querySelector('.z-\\[150\\]')) return;
 
           const key = e.key;
           const lowerKey = key?.toLowerCase();
@@ -675,17 +742,14 @@
           if (key === 'ArrowRight' || lowerKey === 'd') {
             nextQuestion();
           } else if (key === 'ArrowLeft' || lowerKey === 'a') {
-            // 避免在第一題或模擬測驗第二部分第一題往前跳
             if (currentIndex > 0 && !(mode === 'mock' && mockPart === 2 && currentIndex === 50)) {
               prevQuestion();
             }
           } else if (['1', '2', '3', '4', '5'].includes(key)) {
             if (currentQ.type === 'tf') {
-              // 是非題直覺對應：1為O，2為X
               if (key === '1') handleSelect('O');
               if (key === '2') handleSelect('X');
             } else {
-              // 選擇題對應1~5選項
               if (parseInt(key) <= currentQ.options.length) {
                 handleSelect(key);
               }
@@ -697,25 +761,19 @@
         return () => window.removeEventListener('keydown', handleKeyDown);
       });
 
-      // 【防禦性設計】：使用 || 0 確保就算資料庫抓不到該欄位，也能當作 0 來 +1，避免出錯
       const finishQuiz = () => {
         setIsFinished(true);
         if (mode === 'tf_random') updateStats({ tf_random_completed: (userStats.tf_random_completed || 0) + 1, ...(score === 20 && {tf_random_perfect: (userStats.tf_random_perfect || 0) + 1}) });
         else if (mode === 'mc_random') updateStats({ mc_random_completed: (userStats.mc_random_completed || 0) + 1, ...(score === 20 && {mc_random_perfect: (userStats.mc_random_perfect || 0) + 1}) });
-        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length;
-        updateStats({ mock_completed: (userStats.mock_completed || 0) + 1, ...(finalScore === 100 && {mock_perfect: (userStats.mock_perfect || 0) + 1}) });
-        }
+        else if (mode === 'mock') { const finalScore = userAnswers.filter(a => a && a.isCorrect).length; updateStats({ mock_completed: (userStats.mock_completed || 0) + 1, ...(finalScore === 100 && {mock_perfect: (userStats.mock_perfect || 0) + 1}) }); }
       };
 
-      const formatTime = (seconds) => { const m = Math.floor(seconds / 60);
-      const s = seconds % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; };
+      const formatTime = (seconds) => { const m = Math.floor(seconds / 60); const s = seconds % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; };
 
       const renderNavButton = (idx) => {
-        const isAnsweredLocal = !!userAnswers[idx];
-        const isCurrent = idx === currentIndex;
+        const isAnsweredLocal = !!userAnswers[idx]; const isCurrent = idx === currentIndex;
         let isDisabled = (mode === 'mock' && ((mockPart === 1 && idx >= 50) || (mockPart === 2 && idx < 50)));
         const displayNum = mode === 'mock' ? (idx < 50 ? idx + 1 : idx - 49) : idx + 1;
-
         return (
           <button key={idx} onClick={() => jumpToQuestion(idx)} disabled={isDisabled} className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center font-bold text-sm transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-100 text-gray-400' : isCurrent ? 'ring-4 ring-offset-2 scale-110 z-10' : isAnsweredLocal ? 'hover:opacity-80' : 'bg-white shadow-sm border text-gray-500 hover:bg-gray-50'}`} style={{ backgroundColor: isAnsweredLocal && !isDisabled ? '#9CAE96' : undefined, color: isAnsweredLocal && !isDisabled ? 'white' : undefined, '--tw-ring-color': isCurrent ? '#C7A38B' : undefined }}>{displayNum}</button>
         );
@@ -794,24 +852,25 @@
                 <div className="grid grid-cols-2 gap-4">
                   {['O', 'X'].map((opt) => (
                     <button key={opt} onClick={() => handleSelect(opt)} disabled={isAnswered && !isFullMode && mode !== 'mock'}
-                      className={`py-6 rounded-3xl text-2xl font-bold border-2 transition-all ${selectedAnswer === opt ? mode === 'mock' ? 'bg-blue-50 border-blue-400 text-blue-600' : isAnswered ? opt === currentQ.answer ? 'bg-green-50 border-green-500 text-green-600' : 'bg-red-50 border-red-500 text-red-600' : 'bg-blue-50 border-blue-400 text-blue-600' : isAnswered && opt === currentQ.answer && mode !== 'mock' ? 'bg-green-50 border-green-500 text-green-600 opacity-50' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>{opt}</button>
+                      className={`py-6 rounded-3xl text-2xl font-bold border-2 transition-all flex flex-col items-center justify-center gap-2 ${selectedAnswer === opt ? mode === 'mock' ? 'bg-blue-50 border-blue-400 text-blue-600' : isAnswered ? opt === currentQ.answer ? 'bg-green-50 border-green-500 text-green-600' : 'bg-red-50 border-red-500 text-red-600' : 'bg-blue-50 border-blue-400 text-blue-600' : isAnswered && opt === currentQ.answer && mode !== 'mock' ? 'bg-green-50 border-green-500 text-green-600 opacity-50' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      <span>{opt === 'O' ? 'O (是)' : 'X (否)'}</span>
+                      <span className="text-sm font-normal px-3 py-1 rounded-full bg-black/5 text-gray-500">按鍵盤 {opt === 'O' ? '1' : '2'}</span>
+                    </button>
                   ))}
                 </div>
               ) : (
-                 currentQ.options.map((opt, idx) => {
+                currentQ.options.map((opt, idx) => {
                   const optionLabel = String(idx + 1);
                   const isSelected = currentQ.isMultiple ? Array.isArray(selectedAnswer) && selectedAnswer.includes(optionLabel) : selectedAnswer === optionLabel;
                   const isCorrectOpt = (currentQ.isMultiple ? currentQ.answer.split('') : [currentQ.answer]).includes(optionLabel);
                   let btnClass = 'bg-white border-gray-200 text-gray-700 hover:border-gray-300';
-
-                  if (isSelected) { if (mode === 'mock') btnClass = 'bg-blue-50 border-blue-400 text-blue-700';
-                  else if (!isAnswered) btnClass = 'bg-blue-50 border-blue-400 text-blue-700'; else if (isCorrectOpt) btnClass = 'bg-green-50 border-green-500 text-green-700 font-bold';
-                  else btnClass = 'bg-red-50 border-red-500 text-red-700'; } 
+                  if (isSelected) { if (mode === 'mock') btnClass = 'bg-blue-50 border-blue-400 text-blue-700'; else if (!isAnswered) btnClass = 'bg-blue-50 border-blue-400 text-blue-700'; else if (isCorrectOpt) btnClass = 'bg-green-50 border-green-500 text-green-700 font-bold'; else btnClass = 'bg-red-50 border-red-500 text-red-700'; } 
                   else if (isAnswered && isCorrectOpt && mode !== 'mock') btnClass = 'bg-green-50 border-green-500 text-green-700 border-dashed opacity-70';
-
                   return (
                     <button key={idx} onClick={() => handleSelect(optionLabel)} disabled={isAnswered && !isFullMode && mode !== 'mock'} className={`flex items-center text-left p-4 md:p-5 rounded-2xl border-2 transition-all ${btnClass}`}>
-                      <span className={`w-8 h-8 flex items-center justify-center mr-4 shrink-0 font-bold ${currentQ.isMultiple ? 'rounded-md' : 'rounded-full'} ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>({optionLabel})</span><span className="text-lg">{opt}</span>
+                      <span className={`w-8 h-8 flex items-center justify-center mr-4 shrink-0 font-bold ${currentQ.isMultiple ? 'rounded-md' : 'rounded-full'} ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>({optionLabel})</span>
+                      <span className="text-lg flex-1">{opt}</span>
+                      <span className="hidden sm:block text-sm font-normal px-3 py-1 rounded-full bg-black/5 text-gray-500 ml-4 shrink-0">按鍵盤 {optionLabel}</span>
                     </button>
                   );
                 })
@@ -819,8 +878,8 @@
             </div>
             {mode === 'mock' ? (
               <div className="flex justify-between items-center w-full border-t pt-6 border-gray-100 mt-auto">
-                <button onClick={prevQuestion} disabled={currentIndex === 0 || (mockPart === 2 && currentIndex === 50)} className="px-6 py-3 rounded-full font-bold text-gray-500 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed">上一題</button>
-                <button onClick={nextQuestion} className="px-8 py-3 rounded-full text-white font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 bg-[#9CAE96]">{mockPart === 1 && currentIndex === 49 ? '進入選擇題' : currentIndex === questions.length - 1 ? '完成交卷' : '下一題'} <ChevronRight size={20} /></button>
+                <button onClick={prevQuestion} disabled={currentIndex === 0 || (mockPart === 2 && currentIndex === 50)} className="px-6 py-3 rounded-full font-bold text-gray-500 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed">上一題 (← / A)</button>
+                <button onClick={nextQuestion} className="px-8 py-3 rounded-full text-white font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 bg-[#9CAE96]">{mockPart === 1 && currentIndex === 49 ? '進入選擇題' : currentIndex === questions.length - 1 ? '完成交卷' : '下一題 (→ / D)'} <ChevronRight size={20} /></button>
               </div>
             ) : (!isAnswered && !currentQ.isMultiple) ? null : (
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-t pt-6 border-gray-100 mt-auto">
@@ -833,7 +892,7 @@
                          {userAnswers[currentIndex]?.isCorrect ? <span className="px-3 py-1 bg-green-100 text-green-700 font-bold rounded-lg">答對了！</span> : <span className="px-3 py-1 bg-red-100 text-red-700 font-bold rounded-lg">答錯囉</span>}
                          {currentQ.explanation && currentQ.explanation !== '無解析' && <button onClick={() => setShowExplanation(!showExplanation)} className="text-sm underline text-gray-500 hover:text-gray-800">{showExplanation ? '隱藏解析' : '查看解析'}</button>}
                        </div>
-                       <button onClick={nextQuestion} className="px-10 py-3 rounded-full text-white font-bold transition-all hover:scale-105 shadow-md flex items-center gap-2 bg-[#9CAE96]">{currentIndex === questions.length - 1 ? '完成測驗' : '下一題'} <ChevronRight size={20} /></button>
+                       <button onClick={nextQuestion} className="px-10 py-3 rounded-full text-white font-bold transition-all hover:scale-105 shadow-md flex items-center gap-2 bg-[#9CAE96]">{currentIndex === questions.length - 1 ? '完成測驗' : '下一題 (→ / D)'} <ChevronRight size={20} /></button>
                      </div>
                      {showExplanation && <div className="bg-gray-50 p-4 rounded-xl text-gray-700 text-sm mt-2 border border-gray-200"><strong>解析：</strong> {currentQ.explanation}</div>}
                    </div>
@@ -853,7 +912,7 @@
           <div className="space-y-12">
             {Object.keys(PREFIXES).map(category => (
               <div key={category} className="bg-white rounded-[3rem] p-8 shadow-sm border border-[#E8E6E1]">
-                 <h3 className="text-xl font-bold mb-8 flex items-center gap-2 border-b pb-4 text-[#7B929A]"><Trophy size={20} /> {PREFIXES[category]}</h3>
+                <h3 className="text-xl font-bold mb-8 flex items-center gap-2 border-b pb-4 text-[#7B929A]"><Trophy size={20} /> {PREFIXES[category]}</h3>
                 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-y-10 gap-x-4">
                   {ACHIEVEMENT_TIERS.map(tier => {
@@ -865,8 +924,7 @@
                     const handleTrophyClick = () => {
                       if (isClaimable) onClaim(achieveId, category, tier);
                       else if (!isClaimed) {
-                        let reqText = "";
-                        const th = tier.threshold; const prefix = PREFIXES[category];
+                        let reqText = ""; const th = tier.threshold; const prefix = PREFIXES[category];
                         if (category.includes('full')) reqText = `在「${prefix}」中，完成總題數的 ${Math.round(th.percent * 100)}% (約 ${Math.ceil(th.percent * (category === 'tf_full' ? tfTotal : mcTotal))} 題)。`;
                         else if (category.includes('random')) reqText = th.random_perfect ? `在「${prefix}」中，完成 ${th.random} 次以上測驗，且獲得滿分 ${th.random_perfect} 次。` : `在「${prefix}」中，完成 ${th.random} 次測驗。`;
                         else if (category === 'mock') reqText = th.mock_perfect ? `在「全真模擬測驗」中，完成 ${th.mock} 次以上測驗，且獲得滿分 ${th.mock_perfect} 次。` : `完成 ${th.mock} 次全真模擬測驗。`;
@@ -903,7 +961,6 @@
         </div>
       );
     }
-
     const root = createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
