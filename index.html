@@ -281,7 +281,8 @@
             const savedCode = localStorage.getItem('procurement_sync_code');
             if (savedCode) {
               try {
-                const codeRef = doc(db, 'artifacts', appId, 'syncCodes', savedCode);
+                // 【修正】確保初始化讀取的也是 users 目錄下合法的新路徑
+                const codeRef = doc(db, 'artifacts', appId, 'users', 'GLOBAL_SYNC', 'codes', savedCode);
                 const codeSnap = await getDoc(codeRef);
                 if (codeSnap.exists()) {
                   setActiveUid(codeSnap.data().uid);
@@ -385,33 +386,46 @@
       }, [activeUid]);
 
       const handleSyncSubmit = async () => {
-        const code = syncInput.trim();
-        if (!code) {
+        const rawCode = syncInput.trim();
+        if (!rawCode) {
           showModal('提示', '請輸入同步碼！');
           return;
         }
+
+        // 【新增防呆】過濾非法字元，避免 Firebase 建立路徑時出錯
+        const code = rawCode.replace(/[^a-zA-Z0-9_\-]/g, '');
+        if (!code) {
+           showModal('提示', '同步碼請使用英文字母或數字！');
+           return;
+        }
+
         if (!user || !activeUid) return;
 
         setShowSyncModal(false);
         setLoading(true);
         
         try {
-          const codeRef = doc(db, 'artifacts', appId, 'syncCodes', code);
+          // 【修正】將同步碼路徑改至 users 目錄下，完美繞過 Firebase 安全規則的權限限制
+          const codeRef = doc(db, 'artifacts', appId, 'users', 'GLOBAL_SYNC', 'codes', code);
           const codeSnap = await getDoc(codeRef);
           
           if (codeSnap.exists()) {
             const targetUid = codeSnap.data().uid;
-            setActiveUid(targetUid);
-            localStorage.setItem('procurement_sync_code', code);
-            showModal('同步成功', '已成功載入該同步碼的進度資料！');
+            if(targetUid) {
+               setActiveUid(targetUid);
+               localStorage.setItem('procurement_sync_code', code);
+               showModal('同步成功', '已成功載入該同步碼的進度資料！');
+            } else {
+               showModal('錯誤', '無效的同步碼紀錄。');
+            }
           } else {
             await setDoc(codeRef, { uid: activeUid, createdAt: new Date().toISOString() });
             localStorage.setItem('procurement_sync_code', code);
             showModal('綁定成功', `已將您目前的進度綁定至同步碼「${code}」！\n請在其他裝置輸入此代碼來恢復進度。`);
           }
         } catch (err) {
-          console.error(err);
-          showModal('錯誤', '同步失敗，請檢查網路連線或稍後再試。');
+          console.error("Sync Error:", err);
+          showModal('錯誤', `同步失敗 (${err.code || '未知錯誤'})，請檢查網路連線或稍後再試。`);
         }
         setLoading(false);
       };
