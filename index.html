@@ -281,7 +281,6 @@
             const savedCode = localStorage.getItem('procurement_sync_code');
             if (savedCode) {
               try {
-                // 【修正】確保初始化讀取的也是 users 目錄下合法的新路徑
                 const codeRef = doc(db, 'artifacts', appId, 'users', 'GLOBAL_SYNC', 'codes', savedCode);
                 const codeSnap = await getDoc(codeRef);
                 if (codeSnap.exists()) {
@@ -385,6 +384,7 @@
         return () => { unsubMistakes(); unsubAchievements(); };
       }, [activeUid]);
 
+      // 【新增/修改】處理同步碼並自動重新整理
       const handleSyncSubmit = async () => {
         const rawCode = syncInput.trim();
         if (!rawCode) {
@@ -392,7 +392,6 @@
           return;
         }
 
-        // 【新增防呆】過濾非法字元，避免 Firebase 建立路徑時出錯
         const code = rawCode.replace(/[^a-zA-Z0-9_\-]/g, '');
         if (!code) {
            showModal('提示', '同步碼請使用英文字母或數字！');
@@ -405,23 +404,26 @@
         setLoading(true);
         
         try {
-          // 【修正】將同步碼路徑改至 users 目錄下，完美繞過 Firebase 安全規則的權限限制
           const codeRef = doc(db, 'artifacts', appId, 'users', 'GLOBAL_SYNC', 'codes', code);
           const codeSnap = await getDoc(codeRef);
           
           if (codeSnap.exists()) {
             const targetUid = codeSnap.data().uid;
             if(targetUid) {
-               setActiveUid(targetUid);
                localStorage.setItem('procurement_sync_code', code);
-               showModal('同步成功', '已成功載入該同步碼的進度資料！');
+               // 第四個參數傳入 callback，使用者按下「確定」後執行重新整理
+               showModal('同步成功', '已成功尋獲您的進度資料！\n\n按下「確定」後，系統將自動重新載入網頁以套用最新進度。', 'alert', () => {
+                   window.location.reload();
+               });
             } else {
                showModal('錯誤', '無效的同步碼紀錄。');
             }
           } else {
             await setDoc(codeRef, { uid: activeUid, createdAt: new Date().toISOString() });
             localStorage.setItem('procurement_sync_code', code);
-            showModal('綁定成功', `已將您目前的進度綁定至同步碼「${code}」！\n請在其他裝置輸入此代碼來恢復進度。`);
+            showModal('綁定成功', `已將您目前的進度綁定至同步碼「${code}」！\n請在其他裝置輸入此代碼來恢復進度。\n\n按下「確定」後，系統將自動重新載入網頁。`, 'alert', () => {
+                window.location.reload();
+            });
           }
         } catch (err) {
           console.error("Sync Error:", err);
